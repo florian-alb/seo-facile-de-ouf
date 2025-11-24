@@ -6,7 +6,7 @@ export const ROUTES: Route[] = [
     auth: false,
     creditCheck: false,
     proxy: {
-      target: "http://localhost:5050",
+      target: "http://public-api:5050",
       changeOrigin: true,
     },
   },
@@ -15,7 +15,7 @@ export const ROUTES: Route[] = [
     auth: false,
     creditCheck: false,
     proxy: {
-      target: "http://localhost:5555",
+      target: "http://private-api:5555",
       changeOrigin: true,
     },
   },

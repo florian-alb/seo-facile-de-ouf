@@ -1,0 +1,39 @@
+version: "3.8"
+
+services:
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  public-api:
+    build:
+      context: ./public-api
+      dockerfile: Dockerfile
+    container_name: public-api
+    ports:
+      - "5050:5050"
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  private-api:
+    build:
+      context: ./private-api
+      dockerfile: Dockerfile
+    container_name: private-api
+    ports:
+      - "5555:5555"
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
