@@ -10,6 +10,9 @@ app.get("/", (_req: Request, res: Response, next: NextFunction) => {
   res.send("/ of API Gateway");
 });
 
+// Log resolved routes so we can verify environment variables and targets
+console.log("API Gateway ROUTES:", JSON.stringify(ROUTES, null, 2));
+
 setupProxies(app, ROUTES);
 
 app.use(function (err: any, req: Request, res: Response, next: NextFunction) {

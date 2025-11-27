@@ -30,5 +30,5 @@ export const ROUTES: Route[] = [
       changeOrigin: true,
       pathRewrite: { "^/mongo-express": "" },
     },
-  },
+  }
 ];
