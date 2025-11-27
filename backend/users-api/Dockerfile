@@ -10,5 +10,5 @@ COPY . .
 # Build TypeScript to JavaScript
 RUN npm run build
 
-EXPOSE 5555
+EXPOSE 5001
 CMD ["node", "dist/index.js"]

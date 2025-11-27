@@ -1,12 +1,17 @@
 {
-	"devDependencies": {
-		"husky": "^9.1.7"
-	},
-	"scripts": {
-		"prepare": "husky",
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"api-gateway": "cd api-gateway && pnpm run dev",
-		"private-api": "cd private-api && pnpm run dev",
-		"public-api": "cd public-api && pnpm run dev"
-	}
+  "devDependencies": {
+    "husky": "^9.1.7"
+  },
+  "scripts": {
+    "prepare": "husky",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "frontend": "cd frontend && pnpm run dev",
+    "api-gateway": "cd backend/api-gateway && pnpm run dev",
+    "users-api": "cd backend/users-api && pnpm run dev",
+    "generations-api": "cd backend/generations-api && pnpm run dev",
+    "dev": "concurrently \"pnpm run frontend\" \"pnpm run api-gateway\" \"pnpm run users-api\" \"pnpm run generations-api\""
+  },
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
 }

@@ -14,8 +14,10 @@
   "license": "ISC",
   "packageManager": "pnpm@10.14.0",
   "dependencies": {
+    "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "http-proxy-middleware": "^3.0.5",
+    "mongoose": "^9.0.0",
     "ts-node": "^10.9.2"
   },
   "devDependencies": {

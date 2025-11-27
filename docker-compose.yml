@@ -1,39 +1,89 @@
-version: "3.8"
-
 services:
   api-gateway:
     build:
-      context: ./api-gateway
-      dockerfile: Dockerfile
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile.dev
     container_name: api-gateway
     ports:
       - "3000:3000"
+    volumes:
+      - ./backend/api-gateway:/src
+      - /src/node_modules
+    environment:
+      - PORT=3000
+      - GENERATIONS_API_URL=http://generations-api:5002
+      - USERS_API_URL=http://users-api:5001
+      - MONGO_EXPRESS_URL=http://mongo-express:8081
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      - generations-api
+      - users-api
+
+  users-api:
+    build:
+      context: ./backend/users-api
+      dockerfile: Dockerfile.dev
+    container_name: users-api
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./backend/users-api:/src
+      - /src/node_modules
+    environment:
+      - PORT=5001
     restart: unless-stopped
     networks:
       - app-network
 
-  public-api:
+  generations-api:
     build:
-      context: ./public-api
-      dockerfile: Dockerfile
-    container_name: public-api
+      context: ./backend/generations-api
+      dockerfile: Dockerfile.dev
+    container_name: generations-api
     ports:
-      - "5050:5050"
+      - "5002:5002"
+    volumes:
+      - ./backend/generations-api:/src
+      - /src/node_modules
+    environment:
+      - PORT=5002
+      - MONGO_URI=mongodb://mongo:27017/generations-db
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
     restart: unless-stopped
     networks:
       - app-network
 
-  private-api:
-    build:
-      context: ./private-api
-      dockerfile: Dockerfile
-    container_name: private-api
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
     ports:
-      - "5555:5555"
+      - "8081:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
     restart: unless-stopped
     networks:
       - app-network
+    depends_on:
+      - mongo
 
 networks:
   app-network:
     driver: bridge
+
+volumes:
+  mongo-data:

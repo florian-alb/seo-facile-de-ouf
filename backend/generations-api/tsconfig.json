@@ -1,5 +1,9 @@
 {
   "compilerOptions": {
+    "baseUrl": "./src",
+    "paths": {
+      "@app/*": ["./*"]
+    },
     "target": "ES2022",
     "module": "CommonJS",
     "moduleResolution": "node",
