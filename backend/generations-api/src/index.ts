@@ -1,20 +1,19 @@
-import express, { Express, Request, Response } from "express";
-import generationRouter from "@app/routes/generation.routes";
+import dotenv from "dotenv";
+import createApp from "./app";
+import { connectDB } from "./lib/mongoose";
 
-const app: Express = express();
-const port = process.env.PORT || 5002;
+dotenv.config();
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("/ of Generations API");
-});
+const PORT = process.env.PORT || 5002;
 
-app.use("/", generationRouter);
+const startServer = async () => {
+  await connectDB();
 
-app.use(function (err: Error, _req: Request, res: Response) {
-  console.error(err.stack);
-  res.status(500).send("Something broke!");
-});
+  const app = createApp();
 
-app.listen(port, () => {
-  console.log(`Generation API is running at http://localhost:${port}`);
-});
+  app.listen(PORT, () => {
+    console.log(`🚀 Server started on http://localhost:${PORT}`);
+  });
+};
+
+startServer();

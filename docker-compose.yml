@@ -1,15 +1,35 @@
 services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      - api-gateway
+
   api-gateway:
     build:
       context: ./backend/api-gateway
       dockerfile: Dockerfile.dev
     container_name: api-gateway
     ports:
-      - "${API_GATEWAY_PORT:-3000}:3000"
+      - "${API_GATEWAY_PORT:-4000}:4000"
     volumes:
+      - ./backend/api-gateway:/src
       - /src/node_modules
     environment:
-      - PORT=3000
+      - PORT=4000
       - GENERATIONS_API_URL=${GENERATIONS_API_URL}
       - USERS_API_URL=${USERS_API_URL}
       - MONGO_EXPRESS_URL=${MONGO_EXPRESS_URL}
@@ -52,6 +72,7 @@ services:
     ports:
       - "${GENERATIONS_API_PORT:-5002}:5002"
     volumes:
+      - ./backend/generations-api:/src
       - /src/node_modules
     environment:
       - PORT=5002
@@ -107,7 +128,7 @@ services:
     container_name: adminer
     restart: unless-stopped
     ports:
-      - "8080:8080"
+      - "${ADMINER_PORT:-8082}:8080"
     networks:
       - app-network
 

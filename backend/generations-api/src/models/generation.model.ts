@@ -1,4 +1,4 @@
-import { IGeneration } from "@app/types/generation";
+import { IGeneration } from "../types";
 import { Schema, model } from "mongoose";
 
 const generationSchema = new Schema<IGeneration>(

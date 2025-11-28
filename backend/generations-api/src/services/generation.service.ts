@@ -1,4 +1,4 @@
-import { Generation } from "@app/models/generation.model";
+import { Generation } from "../models/generation.model";
 
 export async function getAll() {
   try {

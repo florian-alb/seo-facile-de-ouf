@@ -2,22 +2,18 @@ FROM node:20-bullseye-slim
 
 WORKDIR /src
 
-# Ensure system libraries required by Prisma are available (libssl1.1)
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends ca-certificates openssl libssl1.1 \
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-
-# Copy Prisma schema so `prisma generate` (postinstall) can run during `npm install`
 COPY prisma ./prisma
 
 RUN npm install
 
-# Copy remaining files
 COPY . .
 
 EXPOSE 5001
 
-CMD ["npm", "run", "dev"]
-
+# Generate Prisma client before starting the app
+CMD ["sh", "-c", "npx prisma generate && npm run dev"]

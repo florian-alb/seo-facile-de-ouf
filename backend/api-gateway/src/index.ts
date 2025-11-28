@@ -1,25 +1,11 @@
-import express, { Express, NextFunction, Request, Response } from "express";
+import dotenv from "dotenv";
+import createApp from "./app";
 
-import { setupProxies } from "./proxy";
-import { ROUTES } from "./routes";
+dotenv.config();
 
-const app: Express = express();
-const port = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
+const app = createApp();
 
-app.get("/", (_req: Request, res: Response, next: NextFunction) => {
-  res.send("/ of API Gateway");
-});
-
-// Log resolved routes so we can verify environment variables and targets
-console.log("API Gateway ROUTES:", JSON.stringify(ROUTES, null, 2));
-
-setupProxies(app, ROUTES);
-
-app.use(function (err: any, req: Request, res: Response, next: NextFunction) {
-  console.error(err.stack);
-  res.status(500).send("Something broke!");
-});
-
-app.listen(port, () => {
-  console.log(`API Gateway is running at http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`🚀 Server started on http://localhost:${PORT}`);
 });

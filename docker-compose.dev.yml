@@ -1,0 +1,64 @@
+# Docker Compose for LOCAL DEVELOPMENT
+# Only databases and admin tools - APIs run locally on your machine
+# Usage: docker-compose -f docker-compose.dev.yml up -d
+
+services:
+  mongo:
+    image: mongo:latest
+    container_name: mongo-dev
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo-data-dev:/data/db
+    restart: unless-stopped
+    networks:
+      - dev-network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-dev
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=users_db
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata-dev:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - dev-network
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express-dev
+    ports:
+      - "${MONGO_EXPRESS_PORT:-8081}:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo-dev
+      - ME_CONFIG_MONGODB_PORT=27017
+    restart: unless-stopped
+    networks:
+      - dev-network
+    depends_on:
+      - mongo
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer-dev
+    ports:
+      - "${ADMINER_PORT:-8082}:8080"
+    restart: unless-stopped
+    networks:
+      - dev-network
+    depends_on:
+      - postgres
+
+networks:
+  dev-network:
+    driver: bridge
+
+volumes:
+  mongo-data-dev:
+  pgdata-dev:
+

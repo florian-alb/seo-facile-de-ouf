@@ -44,8 +44,7 @@ Ce projet met en œuvre une architecture **Microservices** moderne et typée :
   - **MongoDB + Mongoose :** Données non structurées (Historique des générations IA, Logs, Contenu riche).
 - **Intelligence Artificielle :** OpenAI API (GPT-5) + Claude (sonnet 4.5)
 - **Frontend :** Next.js / React.
-
-Voici une version **courte, simple et adaptée à un README** :
+- **UX :** Shad/cn / tailwind
 
 ## 🧠 Justification des choix techniques
 
@@ -81,10 +80,30 @@ Contrairement à Angular, Next est plus adapté pour notre projet car moins lour
 
 ### **GPT-5 et Claude (via API IA)**
 
-L’application utilise GPT-5 et Claude Sonnet pour générer des descriptions produits riches et optimisées SEO.
+L'application utilise GPT-5 et Claude Sonnet pour générer des descriptions produits riches et optimisées SEO.
 Claude est meilleur dans la rédaction "humaine" et sera prévilégié pour les descriptions longues. Nous utiliserons GPT-5 pour les taches de mise en forme, et de rédaction plus courte (slugs, meta-titres, baslises alt) car moins cher.
 
-## 📁 Schéma d'infrastructure
+---
+
+### **Tailwind CSS & Shadcn/ui**
+
+Tailwind permet un développement rapide avec des classes utilitaires, évitant la gestion de fichiers CSS séparés.
+Shadcn/ui fournit des composants accessibles et personnalisables (pas une librairie, mais des templates copiables). Cette approche offre flexibilité et contrôle total sur le code, tout en accélérant le développement avec des composants modernes et bien conçus.
+
+## 📁 Architecture
+
+![Architecture Microservices](./docs/architecture.png)
+
+Le projet utilise une architecture microservices avec :
+
+- **Frontend** (port 3000) : Interface React/Next.js
+- **API Gateway** (port 4000) : Point d'entrée unique pour router les requêtes
+- **3 Microservices Backend** :
+  - `/users` (port 5001) : Gestion utilisateurs avec PostgreSQL
+  - `/generation` (port 5002) : Génération de contenu IA avec MongoDB
+  - `/shop` (port 5003) : Gestion boutique avec PostgreSQL
+
+Chaque service est indépendant, dockerisé, et communique via l'API Gateway.
 
 ## 🚀 Installation
 
@@ -115,67 +134,106 @@ Tous les services démarrent automatiquement avec hot-reload !
 
 ### Option 2 : En local (développement)
 
-Ouvrir 3 terminaux :
+Ouvrir plusieurs terminaux :
 
-**Terminal 1 - API Gateway (port 3000)**
+**Terminal 1 - API Gateway (port 4000)**
 
 ```bash
 cd backend/api-gateway && pnpm dev
 ```
 
-**Terminal 2 - Generations API (port 5002)**
-
-```bash
-cd backend/generations-api && pnpm dev
-```
-
-**Terminal 3 - Users API (port 5001)**
+**Terminal 2 - Users API (port 5001)**
 
 ```bash
 cd backend/users-api && pnpm dev
 ```
 
+**Terminal 3 - Generations API (port 5002)**
+
+```bash
+cd backend/generations-api && pnpm dev
+```
+
+**Terminal 4 - Shop API (port 5003)**
+
+```bash
+cd backend/shop-api && pnpm dev
+```
+
+**Terminal 5 - Frontend (port 3000)**
+
+```bash
+cd frontend && pnpm dev
+```
+
 ## 📍 Routes disponibles
 
-### Via API Gateway (http://localhost:3000)
+### Via API Gateway (http://localhost:4000)
 
-- `GET /` - Status du gateway
-- `GET /generation/*` - Proxy vers Generations API
-- `GET /users/*` - Proxy vers Users API
-
-### Generations API (http://localhost:5002)
-
-- `GET /` - Status
-- `GET /generation` - Liste des générations (MongoDB)
+- `GET /api/` - Status du gateway
+- `GET /api/generation/*` - Proxy vers Generations API
+- `GET /api/users/*` - Proxy vers Users API
+- `GET /api/shop/*` - Proxy vers Shop API
 
 ### Users API (http://localhost:5001)
 
-- `GET /` - Status
+- Gestion des utilisateurs, authentification
+- Base de données : PostgreSQL
+
+### Generations API (http://localhost:5002)
+
+- Génération de contenu IA
+- Base de données : MongoDB
+
+### Shop API (http://localhost:5003)
+
+- Gestion des boutiques et intégrations
+- Base de données : PostgreSQL
 
 ## 🧪 Tester
 
 ```bash
 # Via le gateway
-curl http://localhost:3000/generation/
-curl http://localhost:3000/users/
+curl http://localhost:4000/api/users/
+curl http://localhost:4000/api/generation/
+curl http://localhost:4000/api/shop/
 
-# Directement
-curl http://localhost:5002/
+# Directement les microservices
 curl http://localhost:5001/
+curl http://localhost:5002/
+curl http://localhost:5003/
 ```
 
-## 🗄️ MongoDB
+## 🗄️ Bases de données
 
-### Avec MongoDB Compass (Recommandé)
+### MongoDB (Generations)
+
+**Avec MongoDB Compass :**
 
 1. Téléchargez [MongoDB Compass](https://www.mongodb.com/try/download/compass)
 2. Connectez-vous à : `mongodb://localhost:27017`
 3. Accédez à la base `generations-db`
 
-### Avec CLI
+**Avec CLI :**
 
 ```bash
 mongosh mongodb://localhost:27017/generations-db
+```
+
+### PostgreSQL (Users & Shop)
+
+**Connexion :**
+
+```bash
+psql -h localhost -U postgres -d users_db
+psql -h localhost -U postgres -d shop_db
+```
+
+**Migrations Prisma :**
+
+```bash
+cd backend/users-api && pnpm prisma migrate dev
+cd backend/shop-api && pnpm prisma migrate dev
 ```
 
 ## 🔧 Configuration
@@ -186,9 +244,11 @@ Des fichiers `.env.example` sont fournis comme templates.
 ### Variables importantes :
 
 - `PORT` - Port d'écoute du service
-- `MONGO_URI` - URI de connexion MongoDB
-- `GENERATIONS_API_URL` - URL de l'API Generations (pour le gateway)
+- `DATABASE_URL` - URI PostgreSQL (Users & Shop)
+- `MONGO_URI` - URI MongoDB (Generations)
 - `USERS_API_URL` - URL de l'API Users (pour le gateway)
+- `GENERATIONS_API_URL` - URL de l'API Generations (pour le gateway)
+- `SHOP_API_URL` - URL de l'API Shop (pour le gateway)
 
 ## 📝 Notes
 

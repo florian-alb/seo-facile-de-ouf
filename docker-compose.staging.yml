@@ -1,0 +1,139 @@
+# Docker Compose for STAGING/PRODUCTION
+# Everything dockerized - APIs + Databases
+# Usage: docker-compose -f docker-compose.staging.yml up -d --build
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend-staging
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - NODE_ENV=staging
+    restart: unless-stopped
+    networks:
+      - staging-network
+    depends_on:
+      - api-gateway
+
+  api-gateway:
+    build:
+      context: ./backend/api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway-staging
+    ports:
+      - "${API_GATEWAY_PORT:-4000}:4000"
+    environment:
+      - PORT=4000
+      - GENERATIONS_API_URL=${GENERATIONS_API_URL}
+      - USERS_API_URL=${USERS_API_URL}
+      - NODE_ENV=staging
+    restart: unless-stopped
+    networks:
+      - staging-network
+    depends_on:
+      - generations-api
+      - users-api
+
+  users-api:
+    build:
+      context: ./backend/users-api
+      dockerfile: Dockerfile
+    container_name: users-api-staging
+    ports:
+      - "${USERS_API_PORT:-5001}:5001"
+    environment:
+      - PORT=5001
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=users_db
+      - DATABASE_URL=postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/users_db
+      - NODE_ENV=staging
+    restart: unless-stopped
+    networks:
+      - staging-network
+    depends_on:
+      - postgres
+
+  generations-api:
+    build:
+      context: ./backend/generations-api
+      dockerfile: Dockerfile
+    container_name: generations-api-staging
+    ports:
+      - "${GENERATIONS_API_PORT:-5002}:5002"
+    environment:
+      - PORT=5002
+      - MONGO_URI=${MONGO_URI}
+      - NODE_ENV=staging
+    restart: unless-stopped
+    networks:
+      - staging-network
+    depends_on:
+      - mongo
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres-staging
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=users_db
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata-staging:/var/lib/postgresql/data
+    restart: unless-stopped
+    networks:
+      - staging-network
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo-staging
+    ports:
+      - "${MONGO_PORT:-27017}:27017"
+    volumes:
+      - mongo-data-staging:/data/db
+    restart: unless-stopped
+    networks:
+      - staging-network
+
+  # Admin tools (optionnel en staging, commenter si pas nécessaire)
+  adminer:
+    image: adminer:latest
+    container_name: adminer-staging
+    ports:
+      - "${ADMINER_PORT:-8082}:8080"
+    restart: unless-stopped
+    networks:
+      - staging-network
+    depends_on:
+      - postgres
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express-staging
+    ports:
+      - "${MONGO_EXPRESS_PORT:-8081}:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo-staging
+      - ME_CONFIG_MONGODB_PORT=27017
+    restart: unless-stopped
+    networks:
+      - staging-network
+    depends_on:
+      - mongo
+
+networks:
+  staging-network:
+    driver: bridge
+
+volumes:
+  pgdata-staging:
+  mongo-data-staging:
+
