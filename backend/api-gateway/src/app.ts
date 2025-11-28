@@ -21,12 +21,12 @@ const createApp = (): Application => {
       allowedHeaders: ["Content-Type", "Authorization"],
     })
   );
-  app.use(express.json());
 
   // Log resolved routes so we can verify environment variables and targets
   console.log("API Gateway ROUTES:", JSON.stringify(ROUTES, null, 2));
 
   // Setup proxies first (specific routes)
+  // DON'T parse body before proxying - let backend services handle it
   setupProxies(app, ROUTES);
 
   // Health check route (after proxies, so it doesn't conflict)
