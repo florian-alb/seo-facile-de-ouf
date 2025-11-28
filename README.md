@@ -1,6 +1,42 @@
-# Architecture Microservices
+# SEO FACILE DE OUF
 
-Projet d'architecture microservices avec TypeScript et Express.
+**Plateforme SaaS d'automatisation de contenu SEO pour e-commerçants, basée sur une architecture Microservices.**
+
+## 📖 À propos du projet
+
+Ce projet est un SaaS B2B conçu pour aider les e-commerçants (Shopify, WooCommerce) à rédiger des fiches produits optimisées pour le référencement (SEO) en quelques secondes grâce à l'Intelligence Artificielle.
+
+Contrairement aux solutions classiques de rédaction manuelle, cette application permet de générer, stocker et gérer des centaines de descriptions uniques et optimisées.
+
+### 🎯 Pourquoi cet outil ?
+
+La rédaction de fiches produits est la tâche la plus chronophage et la moins aimée des e-commerçants :
+
+1.  **Le problème du temps :** Rédiger une bonne fiche prend 20 à 60 minutes. Pour une boutique de 100 produits, cela représente des semaines de travail.
+2.  **Le problème du SEO :** Sans optimisation sémantique, une boutique est invisible sur Google.
+3.  **Le problème du coût :** Embaucher des rédacteurs coûte cher.
+
+**Notre solution :** Une interface simple où le marchand rentre ses mots-clés, et notre moteur asynchrone génère un contenu vendeur et optimisé SEO instantanément.
+
+### Concurrence:
+
+- https://describely.ai/
+- https://www.kaatalog.ai/
+- https://shopifast.io/landing
+
+---
+
+## 🛠 Stack Technique
+
+Ce projet met en œuvre une architecture **Microservices** moderne et typée :
+
+- **Backend :** Node.js avec **Express** & **TypeScript**.
+- **Communication :** Messaging asynchrone avec **RabbitMQ**.
+- **Persistence Hybride (Polyglot Persistence) :**
+  - **PostgreSQL + Prisma :** Données relationnelles critiques (Utilisateurs, Auth, Crédits, Tokens Shopify).
+  - **MongoDB + Mongoose :** Données non structurées (Historique des générations IA, Logs, Contenu riche).
+- **Intelligence Artificielle :** OpenAI API (GPT-5) + Claude (sonnet 4.5)
+- **Frontend :** Next.js / React.
 
 ## 📁 Structure
 
