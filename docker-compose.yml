@@ -7,7 +7,6 @@ services:
     ports:
       - "${API_GATEWAY_PORT:-3000}:3000"
     volumes:
-      - ./backend/api-gateway:/src
       - /src/node_modules
     environment:
       - PORT=3000
@@ -33,9 +32,17 @@ services:
       - /src/node_modules
     environment:
       - PORT=5001
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=users_db
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/users_db
     restart: unless-stopped
     networks:
       - app-network
+    depends_on:
+      - postgres
 
   generations-api:
     build:
@@ -45,7 +52,6 @@ services:
     ports:
       - "${GENERATIONS_API_PORT:-5002}:5002"
     volumes:
-      - ./backend/generations-api:/src
       - /src/node_modules
     environment:
       - PORT=5002
@@ -81,9 +87,34 @@ services:
     depends_on:
       - mongo
 
+  postgres:
+    image: postgres:15-alpine
+    container_name: postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=users_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  adminer:
+    image: adminer:latest
+    container_name: adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
 networks:
   app-network:
     driver: bridge
 
 volumes:
   mongo-data:
+  pgdata:

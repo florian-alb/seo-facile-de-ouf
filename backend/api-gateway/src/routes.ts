@@ -29,5 +29,5 @@ export const ROUTES: Route[] = [
       target: process.env.MONGO_EXPRESS_URL || "http://localhost:8081",
       changeOrigin: true,
     },
-  },
+  }
 ];

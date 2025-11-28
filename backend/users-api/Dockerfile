@@ -1,6 +1,11 @@
-FROM node:22-alpine
+FROM node:20-bullseye-slim
 
 WORKDIR /src
+
+# Ensure system libraries required by Prisma are available (libssl1.1)
+RUN apt-get update \
+	&& apt-get install -y --no-install-recommends ca-certificates openssl libssl1.1 \
+	&& rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
 RUN npm install
