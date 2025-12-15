@@ -1,0 +1,31 @@
+{
+  "epic": "#45",
+  "default_labels": ["story"],
+  "project": { "owner": "florian-alb", "number": 9 },
+  "stories": [
+    {
+      "title": "[STORY] Rate limiting au gateway",
+      "story_points": 3,
+      "area": "Gateway",
+      "priority": "P1"
+    },
+    {
+      "title": "[STORY] Validation input stricte (max lengths + JSON specs)",
+      "story_points": 5,
+      "area": "Gateway",
+      "priority": "P1"
+    },
+    {
+      "title": "[STORY] Redaction logs (ne pas log content complet)",
+      "story_points": 3,
+      "area": "Infra",
+      "priority": "P1"
+    },
+    {
+      "title": "[STORY] CORS + headers sécurisés",
+      "story_points": 2,
+      "area": "Gateway",
+      "priority": "P1"
+    }
+  ]
+}
