@@ -2,7 +2,6 @@ name: "Epic"
 description: "Un gros objectif (livrable) découpé en stories."
 title: "[EPIC] "
 labels: ["epic"]
-type: "Epic"
 body:
   - type: textarea
     id: stories
