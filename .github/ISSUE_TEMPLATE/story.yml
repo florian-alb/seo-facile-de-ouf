@@ -1,0 +1,33 @@
+name: "Story"
+description: "Une unité livrable (1 sprint max)."
+title: "[STORY] "
+labels: ["story"]
+body:
+  - type: input
+    id: epic
+    attributes:
+      label: Epic (issue #)
+      description: "Ex: #12"
+    validations:
+      required: false
+  - type: textarea
+    id: user_story
+    attributes:
+      label: User story
+      description: "En tant que … je veux … afin de …"
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critères d'acceptation
+      description: "Checklist testable."
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes techniques
+      description: "Endpoints, schémas, risques, dépendances."
+    validations:
+      required: false

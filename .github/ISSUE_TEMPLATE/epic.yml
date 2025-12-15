@@ -1,0 +1,33 @@
+name: "Epic"
+description: "Un gros objectif (livrable) découpé en stories."
+title: "[EPIC] "
+labels: ["epic"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: Objectif
+      description: "Qu'est-ce qu'on veut accomplir ?"
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope (in/out)
+      description: "Ce qui est inclus / exclu."
+    validations:
+      required: true
+  - type: textarea
+    id: stories
+    attributes:
+      label: Stories liées (checklist)
+      description: "Ajoute les issues ici en checklist: - [ ] #123"
+    validations:
+      required: false
+  - type: textarea
+    id: dod
+    attributes:
+      label: Definition of Done
+      description: "Conditions pour considérer l'epic terminé."
+    validations:
+      required: true
