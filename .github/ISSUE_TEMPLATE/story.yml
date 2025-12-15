@@ -18,13 +18,6 @@ body:
     validations:
       required: true
   - type: textarea
-    id: acceptance
-    attributes:
-      label: Critères d'acceptation
-      description: "Checklist testable."
-    validations:
-      required: true
-  - type: textarea
     id: notes
     attributes:
       label: Notes techniques
