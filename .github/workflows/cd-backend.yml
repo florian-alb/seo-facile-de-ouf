@@ -49,7 +49,6 @@ jobs:
           context: ./backend/users-api
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/easyseo-users:latest
-
       # --- ADD OTHER SERVICES HERE (Shop, Generations, etc.) ---
 
   deploy:
@@ -68,36 +67,65 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           source: "docker-compose.prod.yml"
           target: "/opt/easyseo/"
-
       - name: Execute deployment on Droplet
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
+          env:
+            GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
+            DB_USER: ${{ secrets.DB_USER }}
+            DB_PASS: ${{ secrets.DB_PASS }}
+            API_GATEWAY_PORT: "4000"
+            USERS_API_PORT: "5001"
+            GENERATIONS_API_PORT: "5002"
+            MONGO_PORT: "27017"
+            MONGO_EXPRESS_PORT: "8081"
+            ADMINER_PORT: "8082"
+            MONGO_URI: mongodb://mongo:27017/generations-db
+            DATABASE_URL: postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASS }}@postgres:5432/users_db
+            GENERATIONS_API_URL: http://generations-api:5002
+            USERS_API_URL: http://users-api:5001
+            MONGO_EXPRESS_URL: http://mongo-express:8081
+            ADMINER_URL: http://adminer:8082
           script: |
+            #!/bin/bash
+            set -e
             cd /opt/easyseo
-            
+
+            # Write env file for docker-compose substitutions and env_file usage
+            cat > .env <<EOF
+GITHUB_REPOSITORY_OWNER=${GITHUB_REPOSITORY_OWNER}
+DB_USER=${DB_USER}
+DB_PASS=${DB_PASS}
+API_GATEWAY_PORT=${API_GATEWAY_PORT}
+USERS_API_PORT=${USERS_API_PORT}
+GENERATIONS_API_PORT=${GENERATIONS_API_PORT}
+MONGO_PORT=${MONGO_PORT}
+MONGO_EXPRESS_PORT=${MONGO_EXPRESS_PORT}
+ADMINER_PORT=${ADMINER_PORT}
+MONGO_URI=${MONGO_URI}
+DATABASE_URL=${DATABASE_URL}
+GENERATIONS_API_URL=${GENERATIONS_API_URL}
+USERS_API_URL=${USERS_API_URL}
+MONGO_EXPRESS_URL=${MONGO_EXPRESS_URL}
+ADMINER_URL=${ADMINER_URL}
+EOF
+
             # 1. Log in to Registry
-            # using 'echo' prevents the token from being saved in shell history
             echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
-            
-            # 2. Pull new images
-            # Use docker-compose (v1) or docker compose (v2)
-            if command -v docker-compose &> /dev/null; then
+
+            # 2. Run Deploy (Check for docker-compose vs docker compose)
+            if command -v docker-compose >/dev/null 2>&1; then
+              echo "Using standalone docker-compose..."
               docker-compose -f docker-compose.prod.yml pull
-            else
-              docker compose -f docker-compose.prod.yml pull
-            fi
-            
-            # 3. Restart containers
-            # -d = detached (background)
-            # --remove-orphans = clean up containers not in the compose file anymore
-            if command -v docker-compose &> /dev/null; then
               docker-compose -f docker-compose.prod.yml up -d --remove-orphans
             else
+              echo "Using docker compose plugin..."
+              docker compose -f docker-compose.prod.yml pull
               docker compose -f docker-compose.prod.yml up -d --remove-orphans
             fi
-            
-            # 4. Clean up space (remove old unused images)
-            docker image prune -af
+
+            # 3. Clean up space
+            docker image prune --all --force
