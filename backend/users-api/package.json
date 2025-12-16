@@ -4,7 +4,8 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
+    "generate": "prisma generate",
+    "build": "npm run generate && tsc",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "prisma:generate": "prisma generate",
