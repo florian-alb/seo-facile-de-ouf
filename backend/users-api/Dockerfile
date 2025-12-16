@@ -10,7 +10,6 @@ RUN apt-get update \
 COPY package*.json ./
 COPY prisma ./prisma
 COPY prisma.config.ts ./
-# Set a placeholder DATABASE_URL for prisma generate during build
 ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
 RUN npm install --legacy-peer-deps
 
