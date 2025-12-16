@@ -8,7 +8,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-RUN npm install
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+# Set a placeholder DATABASE_URL for prisma generate during build
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
+RUN npm install --legacy-peer-deps
 
 COPY . .
 
