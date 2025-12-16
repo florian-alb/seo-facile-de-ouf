@@ -7,7 +7,6 @@ export async function createUser(
   next: NextFunction
 ) {
   try {
-    console.log("req.body", req.body);
     const { name, email } = req.body;
 
     if (!name || !email) {
