@@ -59,8 +59,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 1. Create the .env file locally on the runner
-      # This fixes the syntax error and makes managing variables much easier
+      # 1. Create the .env file locally
+      # We put all your app config here.
       - name: Create .env file
         run: |
           cat <<EOF > .env
@@ -81,7 +81,7 @@ jobs:
           ADMINER_URL=http://adminer:8082
           EOF
 
-      # 2. Copy BOTH the compose file AND the new .env file to the server
+      # 2. Copy .env and docker-compose.prod.yml to the VPS
       - name: Copy files to server
         uses: appleboy/scp-action@master
         with:
@@ -91,26 +91,30 @@ jobs:
           source: "docker-compose.prod.yml,.env"
           target: "/opt/easyseo/"
 
-      # 3. Execute Deployment
+      # 3. Execute Deployment via SSH
       - name: Execute deployment on Droplet
         uses: appleboy/ssh-action@master
+        # Define the variables here so they exist in the runner...
+        env:
+          GHCR_PAT: ${{ secrets.GHCR_PAT }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
-          # We only need to pass the repo owner for the login command now
-          # All other vars are already in the .env file we just copied!
-          env: GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
+          # ...and explicitly tell the action to send them to the remote server
+          envs: GHCR_PAT,GITHUB_REPOSITORY_OWNER
           script: |
             #!/bin/bash
             set -e
             cd /opt/easyseo
             
             # 1. Log in to Registry
-            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u $GITHUB_REPOSITORY_OWNER --password-stdin
+            # Using the environment variable is safer than injecting secrets directly
+            echo "$GHCR_PAT" | docker login ghcr.io -u "$GITHUB_REPOSITORY_OWNER" --password-stdin
             
-            # 2. Run Deploy
-            # The .env file is already here (from the SCP step), so Docker Compose will read it automatically.
+            # 2. Deploy
+            # We use the .env file we just copied, so we don't need to pass other variables here
             if command -v docker-compose >/dev/null 2>&1; then
               echo "Using standalone docker-compose..."
               docker-compose -f docker-compose.prod.yml pull
@@ -121,5 +125,5 @@ jobs:
               docker compose -f docker-compose.prod.yml up -d --remove-orphans
             fi
             
-            # 3. Clean up space
+            # 3. Cleanup
             docker image prune --all --force
