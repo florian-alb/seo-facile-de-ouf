@@ -1,0 +1,44 @@
+# docker-compose.prod.yml
+services:
+  api-gateway:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/easyseo-gateway:latest
+    ports:
+      - "80:80"
+    restart: always
+    networks:
+      - app-network
+
+  users-api:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/easyseo-users:latest
+    restart: always
+    env_file: .env
+    networks:
+      - app-network
+
+  shop-api:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/easyseo-shop:latest
+    restart: always
+    env_file: .env
+    networks:
+      - app-network
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:15-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASS}
+      POSTGRES_DB: easyseo
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

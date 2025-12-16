@@ -41,6 +41,9 @@ export async function getUserById(
 ) {
   try {
     const id = Number(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "Invalid user ID" });
+    }
     const user = await usersService.getUserById(id);
     if (!user) {
       return res.status(404).json({ error: "user not found" });
