@@ -59,64 +59,58 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Copy compose file to server
+      # 1. Create the .env file locally on the runner
+      # This fixes the syntax error and makes managing variables much easier
+      - name: Create .env file
+        run: |
+          cat <<EOF > .env
+          GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASS=${{ secrets.DB_PASS }}
+          API_GATEWAY_PORT=4000
+          USERS_API_PORT=5001
+          GENERATIONS_API_PORT=5002
+          MONGO_PORT=27017
+          MONGO_EXPRESS_PORT=8081
+          ADMINER_PORT=8082
+          MONGO_URI=mongodb://mongo:27017/generations-db
+          DATABASE_URL=postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASS }}@postgres:5432/users_db
+          GENERATIONS_API_URL=http://generations-api:5002
+          USERS_API_URL=http://users-api:5001
+          MONGO_EXPRESS_URL=http://mongo-express:8081
+          ADMINER_URL=http://adminer:8082
+          EOF
+
+      # 2. Copy BOTH the compose file AND the new .env file to the server
+      - name: Copy files to server
         uses: appleboy/scp-action@master
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
-          source: "docker-compose.prod.yml"
+          source: "docker-compose.prod.yml,.env"
           target: "/opt/easyseo/"
+
+      # 3. Execute Deployment
       - name: Execute deployment on Droplet
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
-          env:
-            GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
-            DB_USER: ${{ secrets.DB_USER }}
-            DB_PASS: ${{ secrets.DB_PASS }}
-            API_GATEWAY_PORT: "4000"
-            USERS_API_PORT: "5001"
-            GENERATIONS_API_PORT: "5002"
-            MONGO_PORT: "27017"
-            MONGO_EXPRESS_PORT: "8081"
-            ADMINER_PORT: "8082"
-            MONGO_URI: mongodb://mongo:27017/generations-db
-            DATABASE_URL: postgresql://${{ secrets.DB_USER }}:${{ secrets.DB_PASS }}@postgres:5432/users_db
-            GENERATIONS_API_URL: http://generations-api:5002
-            USERS_API_URL: http://users-api:5001
-            MONGO_EXPRESS_URL: http://mongo-express:8081
-            ADMINER_URL: http://adminer:8082
+          # We only need to pass the repo owner for the login command now
+          # All other vars are already in the .env file we just copied!
+          env: GITHUB_REPOSITORY_OWNER=${{ github.repository_owner }}
           script: |
             #!/bin/bash
             set -e
             cd /opt/easyseo
-
-            # Write env file for docker-compose substitutions and env_file usage
-            cat > .env <<EOF
-GITHUB_REPOSITORY_OWNER=${GITHUB_REPOSITORY_OWNER}
-DB_USER=${DB_USER}
-DB_PASS=${DB_PASS}
-API_GATEWAY_PORT=${API_GATEWAY_PORT}
-USERS_API_PORT=${USERS_API_PORT}
-GENERATIONS_API_PORT=${GENERATIONS_API_PORT}
-MONGO_PORT=${MONGO_PORT}
-MONGO_EXPRESS_PORT=${MONGO_EXPRESS_PORT}
-ADMINER_PORT=${ADMINER_PORT}
-MONGO_URI=${MONGO_URI}
-DATABASE_URL=${DATABASE_URL}
-GENERATIONS_API_URL=${GENERATIONS_API_URL}
-USERS_API_URL=${USERS_API_URL}
-MONGO_EXPRESS_URL=${MONGO_EXPRESS_URL}
-ADMINER_URL=${ADMINER_URL}
-EOF
-
+            
             # 1. Log in to Registry
-            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
-
-            # 2. Run Deploy (Check for docker-compose vs docker compose)
+            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u $GITHUB_REPOSITORY_OWNER --password-stdin
+            
+            # 2. Run Deploy
+            # The .env file is already here (from the SCP step), so Docker Compose will read it automatically.
             if command -v docker-compose >/dev/null 2>&1; then
               echo "Using standalone docker-compose..."
               docker-compose -f docker-compose.prod.yml pull
@@ -126,6 +120,6 @@ EOF
               docker compose -f docker-compose.prod.yml pull
               docker compose -f docker-compose.prod.yml up -d --remove-orphans
             fi
-
+            
             # 3. Clean up space
             docker image prune --all --force
