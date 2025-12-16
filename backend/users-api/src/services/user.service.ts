@@ -14,13 +14,13 @@ export async function getAllUsers() {
   return await prisma.user.findMany();
 }
 
-export async function getUserById(id: number) {
+export async function getUserById(id: string) {
   return await prisma.user.findUnique({
     where: { id },
   });
 }
 
-export async function addGenerationToUser(id: number, generationId: string) {
+export async function addGenerationToUser(id: string, generationId: string) {
   const user = await getUserById(id);
 
   if (!user) {
