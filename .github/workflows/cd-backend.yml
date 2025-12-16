@@ -40,7 +40,7 @@ jobs:
           context: ./backend/api-gateway
           push: true
           # ENSURE YOUR USERNAME IS LOWERCASE HERE
-          tags: ghcr.io/killianfra/easyseo-gateway:latest
+          tags: ghcr.io/${{ github.repository_owner }}/easyseo-gateway:latest
 
       # --- SERVICE 2: USERS API ---
       - name: Build and push Users API
@@ -48,7 +48,8 @@ jobs:
         with:
           context: ./backend/users-api
           push: true
-          tags: ghcr.io/killianfra/easyseo-users:latest
+          tags: ghcr.io/
+          /easyseo-users:latest
 
       # --- ADD OTHER SERVICES HERE (Shop, Generations, etc.) ---
 
@@ -80,7 +81,7 @@ jobs:
             
             # 1. Log in to Registry
             # using 'echo' prevents the token from being saved in shell history
-            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u killianfra --password-stdin
+            echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
             
             # 2. Pull new images
             # Use docker-compose (v1) or docker compose (v2)
