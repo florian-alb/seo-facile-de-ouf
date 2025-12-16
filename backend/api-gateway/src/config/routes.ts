@@ -18,6 +18,17 @@ export const ROUTES: Route[] = [
       },
     },
   },
+  // Plain auth routes (for routes like /auth/me)
+  {
+    url: "/auth",
+    auth: false,
+    creditCheck: false,
+    proxy: {
+      target: process.env.USERS_API_URL || "http://localhost:5001",
+      changeOrigin: true,
+      pathRewrite: { "^/auth": "" }, // Ensure path is rewritten correctly
+    },
+  },
   // User routes
   {
     url: "/users",
