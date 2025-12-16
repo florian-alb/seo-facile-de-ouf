@@ -3,7 +3,7 @@ services:
   api-gateway:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/easyseo-gateway:latest
     ports:
-      - "80:80"
+      - "80:4000"
     restart: always
     networks:
       - app-network
