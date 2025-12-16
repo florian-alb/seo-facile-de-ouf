@@ -5,6 +5,9 @@ services:
     ports:
       - "80:4000"
     restart: always
+    env_file: .env
+    depends_on:
+      - users-api
     networks:
       - app-network
 
@@ -12,6 +15,8 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/easyseo-users:latest
     restart: always
     env_file: .env
+    depends_on:
+      - postgres
     networks:
       - app-network
 
