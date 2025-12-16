@@ -76,28 +76,23 @@ jobs:
           username: ${{ secrets.DO_USERNAME }}
           key: ${{ secrets.DO_SSH_KEY }}
           script: |
+            #!/bin/bash
+            set -e
             cd /opt/easyseo
             
             # 1. Log in to Registry
-            # using 'echo' prevents the token from being saved in shell history
             echo ${{ secrets.GHCR_PAT }} | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
             
-            # 2. Pull new images
-            # Use docker-compose (v1) or docker compose (v2)
-            if command -v docker-compose &> /dev/null; then
+            # 2. Run Deploy (Check for docker-compose vs docker compose)
+            if command -v docker-compose >/dev/null 2>&1; then
+              echo "Using standalone docker-compose..."
               docker-compose -f docker-compose.prod.yml pull
-            else
-              docker compose -f docker-compose.prod.yml pull
-            fi
-            
-            # 3. Restart containers
-            # -d = detached (background)
-            # --remove-orphans = clean up containers not in the compose file anymore
-            if command -v docker-compose &> /dev/null; then
               docker-compose -f docker-compose.prod.yml up -d --remove-orphans
             else
+              echo "Using docker compose plugin..."
+              docker compose -f docker-compose.prod.yml pull
               docker compose -f docker-compose.prod.yml up -d --remove-orphans
             fi
             
-            # 4. Clean up space (remove old unused images)
-            docker image prune -af
+            # 3. Clean up space
+            docker image prune --all --force
