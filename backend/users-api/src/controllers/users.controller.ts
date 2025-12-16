@@ -64,7 +64,6 @@ export async function addGenerationToUser(
     if (!id) {
       return res.status(400).json({ error: "invalid id" });
     }
-
     const { generationId } = req.body;
 
     if (!generationId) {
