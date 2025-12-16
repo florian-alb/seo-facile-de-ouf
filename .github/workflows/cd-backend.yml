@@ -48,9 +48,7 @@ jobs:
         with:
           context: ./backend/users-api
           push: true
-          tags: ghcr.io/
-          /easyseo-users:latest
-
+          tags: ghcr.io/${{ github.repository_owner }}/easyseo-users:latest
       # --- ADD OTHER SERVICES HERE (Shop, Generations, etc.) ---
 
   deploy:
