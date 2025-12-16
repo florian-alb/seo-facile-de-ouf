@@ -10,7 +10,8 @@
     "dev": "tsx watch src/index.ts",
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "prebuild": "npm run generate"
   },
   "keywords": [],
   "author": "",
