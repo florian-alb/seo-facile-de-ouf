@@ -7,7 +7,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-import { ReactNode } from "react";
+import { ReactNode, useState } from "react";
+import { Spinner } from "./ui/spinner";
 
 export interface AuthProviderButtonProps {
   icon: ReactNode;
@@ -46,12 +47,17 @@ export function AuthProviderButton({
   variant = "outline",
   size = "default",
 }: AuthProviderButtonProps) {
+  const [loadingState, setLoadingState] = useState(loading);
+
   const handleClick = async () => {
     if (disabled || loading) return;
     try {
+      setLoadingState(true);
       await onClick();
     } catch (error) {
       console.error(`Error with ${name} authentication:`, error);
+    } finally {
+      setLoadingState(false);
     }
   };
 
@@ -60,7 +66,7 @@ export function AuthProviderButton({
       variant={variant}
       size={size}
       onClick={handleClick}
-      disabled={disabled || loading}
+      disabled={disabled || loadingState}
       className={cn("cursor-pointer", className)}
       aria-label={phrase || `Sign in with ${name}`}
     >
@@ -70,30 +76,7 @@ export function AuthProviderButton({
         </span>
         {!phrase && <span className="sr-only">{name}</span>}
       </span>
-      {loading && (
-        <span className="ml-2" aria-hidden="true">
-          <svg
-            className="animate-spin h-4 w-4"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
-        </span>
-      )}
+      {loadingState && <Spinner />}
     </Button>
   );
 

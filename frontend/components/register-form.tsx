@@ -1,3 +1,5 @@
+"use client";
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,16 +12,20 @@ import {
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import {
-  GitHubAuthButton,
-  GoogleAuthButton,
-  RobloxAuthButton,
-} from "./auth-provider-buttons";
+import { GitHubIcon } from "./icons/github-icon";
+import { GoogleIcon } from "./icons/google-icon";
+import { RobloxIcon } from "./icons/roblox-icon";
+import { AuthProviderButton } from "./auth-provider-button";
+import { signInWithProvider } from "@/lib/auth-client";
 
 export function RegisterForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const handleSignInWithProvider = async (provider: string) => {
+    await signInWithProvider(provider);
+  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card className="overflow-hidden p-0">
@@ -69,9 +75,24 @@ export function RegisterForm({
                 Or continue with
               </FieldSeparator>
               <Field className="grid grid-cols-3 gap-4">
-                <GitHubAuthButton size="icon" />
-                <GoogleAuthButton size="icon" />
-                <RobloxAuthButton size="icon" />
+                <AuthProviderButton
+                  icon={<GitHubIcon />}
+                  name="GitHub"
+                  phrase="Sign in with GitHub"
+                  onClick={() => handleSignInWithProvider("github")}
+                />
+                <AuthProviderButton
+                  icon={<GoogleIcon />}
+                  name="Google"
+                  phrase="Sign in with Google"
+                  onClick={() => handleSignInWithProvider("google")}
+                />
+                <AuthProviderButton
+                  icon={<RobloxIcon />}
+                  name="Roblox"
+                  phrase="Sign in with Roblox"
+                  onClick={() => handleSignInWithProvider("roblox")}
+                />
               </Field>
               <FieldDescription className="text-center">
                 Already have an account? <Link href="/auth/login">Sign in</Link>

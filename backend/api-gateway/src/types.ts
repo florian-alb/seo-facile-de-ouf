@@ -11,6 +11,8 @@ export interface Route {
     router?: { [key: string]: string };
     changeOrigin: boolean;
     pathFilter?: string;
-    pathRewrite?: { [key: string]: string } | ((path: string) => string);
+    pathRewrite?:
+      | { [key: string]: string }
+      | ((path: string, req: Request) => string);
   };
 }
