@@ -51,16 +51,7 @@ jobs:
           tags: ghcr.io/${{ github.repository_owner }}/easyseo-users:latest
       # --- ADD OTHER SERVICES HERE (Shop, Generations, etc.) ---
 
-      # --- SERVICE 3: SHOP API ---
-      - name: Build and push Shop API
-        uses: docker/build-push-action@v5
-        with:
-          # ⚠️ VERIFY THIS PATH matches your actual folder structure
-          context: ./backend/shop-api 
-          push: true
-          tags: ghcr.io/${{ github.repository_owner }}/easyseo-shop:latest
-
-      # --- SERVICE 4: GENERATIONS API (If you have it) ---
+      # --- SERVICE 3: GENERATIONS API ---
       - name: Build and push Generations API
         uses: docker/build-push-action@v5
         with:
