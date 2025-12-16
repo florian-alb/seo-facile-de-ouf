@@ -8,7 +8,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 COPY . .
 
