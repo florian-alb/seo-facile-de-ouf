@@ -5,9 +5,7 @@
   "main": "dist/index.js",
   "scripts": {
     "generate": "prisma generate",
-    "copy:prisma": "node -e \"const fs=require('fs');const path=require('path');const src=path.join('src','generated');const dst=path.join('dist','generated');fs.rmSync(dst,{recursive:true,force:true});fs.cpSync(src,dst,{recursive:true});\"",
-    "build": "tsc",
-    "postbuild": "npm run copy:prisma",
+    "build": "npm run generate && tsc",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
     "prisma:generate": "prisma generate",
