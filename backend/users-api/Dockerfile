@@ -8,7 +8,9 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-RUN npm install
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+RUN npm install --legacy-peer-deps
 
 COPY . .
 
