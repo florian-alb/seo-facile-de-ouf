@@ -100,7 +100,7 @@ Le projet utilise une architecture microservices avec :
 - **API Gateway** (port 4000) : Point d'entrée unique pour router les requêtes
 - **3 Microservices Backend** :
   - `/users` (port 5001) : Gestion utilisateurs avec PostgreSQL
-  - `/generation` (port 5002) : Génération de contenu IA avec MongoDB
+  - `/generations` (port 5002) : Génération de contenu IA avec MongoDB
   - `/shop` (port 5003) : Gestion boutique avec PostgreSQL
 
 Chaque service est indépendant, dockerisé, et communique via l'API Gateway.
