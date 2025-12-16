@@ -15,15 +15,6 @@ services:
     networks:
       - app-network
 
-  shop-api:
-    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/easyseo-shop:latest
-    restart: always
-    env_file: .env
-    networks:
-      - app-network
-    depends_on:
-      - postgres
-
   postgres:
     image: postgres:15-alpine
     restart: always
