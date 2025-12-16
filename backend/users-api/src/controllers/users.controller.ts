@@ -7,7 +7,6 @@ export async function createUser(
   next: NextFunction
 ) {
   try {
-    console.log("req.body", req.body);
     const { name, email } = req.body;
 
     if (!name || !email) {
@@ -60,9 +59,9 @@ export async function addGenerationToUser(
   next: NextFunction
 ) {
   try {
-    const id = Number(req.params.id);
+    const id = req.params.id;
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!id) {
       return res.status(400).json({ error: "invalid id" });
     }
 
