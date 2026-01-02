@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { ReactNode, useState } from "react";
-import { Spinner } from "./ui/spinner";
+import { Spinner } from "../ui/spinner";
 
 export interface AuthProviderButtonProps {
   icon: ReactNode;
@@ -63,6 +63,7 @@ export function AuthProviderButton({
 
   const buttonContent = (
     <Button
+      type="button"
       variant={variant}
       size={size}
       onClick={handleClick}

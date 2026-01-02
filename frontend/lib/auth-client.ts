@@ -1,8 +1,8 @@
 import { createAuthClient } from "better-auth/react";
 
 export const authConfig = {
-  baseURL: process.env.API_URL || "http://localhost:4000",
-  frontendURL: process.env.FRONTEND_URL || "http://localhost:3000",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000",
+  frontendURL: process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000",
 };
 
 export const authClient = createAuthClient({
@@ -24,7 +24,7 @@ export async function signInWithEmail(email: string, password: string) {
 export async function signUpWithEmail(
   email: string,
   password: string,
-  name: string
+  name: string,
 ) {
   return authClient.signUp.email({ email, password, name });
 }
