@@ -1,6 +1,7 @@
 "use client";
 
-import * as React from "react";
+import type { UserPublic } from "@seo-facile-de-ouf/shared/src/user";
+
 import {
   BookOpen,
   Bot,
@@ -29,11 +30,6 @@ import {
 } from "@/components/ui/sidebar";
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
   navMain: [
     {
       title: "Playground",
@@ -152,7 +148,13 @@ const data = {
   ],
 };
 
-export function AppSidebar({ onLogout }: { onLogout: () => Promise<void> }) {
+export function AppSidebar({
+  user,
+  onLogout,
+}: {
+  user: UserPublic,
+  onLogout: () => Promise<void>;
+}) {
   return (
     <Sidebar variant="inset">
       <SidebarHeader>
@@ -178,7 +180,7 @@ export function AppSidebar({ onLogout }: { onLogout: () => Promise<void> }) {
         <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} handlLogout={onLogout} />
+        <NavUser user={user} handlLogout={onLogout} />
       </SidebarFooter>
     </Sidebar>
   );

@@ -2,12 +2,11 @@ import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import DashboardShell from "./components/dashboard-shell";
+import { UserPublic, User } from "@seo-facile-de-ouf/shared/src/user";
+import { Session } from "@seo-facile-de-ouf/shared/src/session";
 
-type Session = {
-  user?: { id: string; name?: string | null; email?: string | null };
-};
 
-async function getSessionFromAuthServer(): Promise<Session | null> {
+async function getSessionFromAuthServer(): Promise<{ session?: Session, user?: User } | null> {
   const API_URL = process.env.API_URL ?? "http://localhost:4000";
 
   const cookie = (await headers()).get("cookie") ?? "";
@@ -19,17 +18,7 @@ async function getSessionFromAuthServer(): Promise<Session | null> {
   });
 
   if (!res.ok) return null;
-
-  const json: unknown = await res.json();
-
-  if (typeof json === "object" && json !== null) {
-    const maybeData = (json as Record<string, unknown>).data;
-    if (typeof maybeData === "object" && maybeData !== null)
-      return maybeData as Session;
-    return json as Session;
-  }
-
-  return null;
+  return await res.json();
 }
 
 export default async function DashboardLayout({
@@ -39,11 +28,16 @@ export default async function DashboardLayout({
 }) {
   const session = await getSessionFromAuthServer();
 
-  console.log("session", session);
-
   if (!session?.user) {
     redirect("/auth/login");
   }
 
-  return <DashboardShell>{children}</DashboardShell>;
+  const user: UserPublic = {
+    id: session.user.id,
+    name: session.user.name,
+    email: session.user.email,
+    image: session.user.image ?? "",
+  };
+
+  return <DashboardShell user={user}>{children}</DashboardShell>;
 }
