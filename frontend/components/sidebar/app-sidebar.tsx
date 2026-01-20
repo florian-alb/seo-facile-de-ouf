@@ -3,22 +3,14 @@
 import type { UserPublic } from "@seo-facile-de-ouf/shared/src/user";
 
 import {
-  BookOpen,
-  Bot,
   Command,
-  Frame,
-  LifeBuoy,
-  Map,
-  PieChart,
-  Send,
-  Settings2,
-  SquareTerminal,
 } from "lucide-react";
 
 import { NavMain } from "@/components/sidebar/nav-main";
 import { NavProjects } from "@/components/sidebar/nav-projects";
 import { NavSecondary } from "@/components/sidebar/nav-secondary";
 import { NavUser } from "@/components/sidebar/nav-user";
+import { StoresSection } from "@/components/sidebar/StoresSection";
 import {
   Sidebar,
   SidebarContent,
@@ -64,6 +56,7 @@ export function AppSidebar({
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
+        <StoresSection />
         {data.navMain && <NavMain items={data.navMain} />}
         {data.projects && <NavProjects projects={data.projects} />}
         {data.navSecondary && <NavSecondary items={data.navSecondary} className="mt-auto" />}
