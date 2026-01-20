@@ -4,6 +4,7 @@ import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth";
 import authRouter from "./routes/auth.routes";
 import userRouter from "./routes/user.routes";
+import storeRouter from "./routes/store.routes";
 import { errorHandler } from "./middlewares/error.middleware";
 
 const createApp = (): Application => {
@@ -24,6 +25,7 @@ const createApp = (): Application => {
   app.use(express.json());
 
   app.use("/auth", authRouter);
+  app.use("/stores", storeRouter);
   app.use("/", userRouter);
 
   app.use(errorHandler);

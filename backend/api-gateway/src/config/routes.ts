@@ -25,6 +25,17 @@ export const ROUTES: Route[] = [
       pathRewrite: { "^/auth": "" }, // Ensure path is rewritten correctly
     },
   },
+  // Stores routes
+  {
+    url: "/stores",
+    auth: false,
+    creditCheck: false,
+    proxy: {
+      target: process.env.USERS_API_URL || "http://localhost:5001",
+      changeOrigin: true,
+      pathRewrite: { "^/stores": "/stores" },
+    },
+  },
   // User routes
   {
     url: "/users",

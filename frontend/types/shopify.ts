@@ -1,21 +1,26 @@
 export type ShopifyStoreLanguage = "fr" | "en" | "es" | "de" | "it";
 
+// API response type (credentials are not returned by the API)
 export type ShopifyStore = {
   id: string;
+  userId: string;
+  name: string;
+  url: string;
+  shopifyDomain: string;
+  language: ShopifyStoreLanguage;
+  createdAt: string;
+  updatedAt: string;
+};
+
+// Form values for creating/updating stores
+export type ShopifyStoreFormValues = {
   name: string;
   url: string;
   shopifyDomain: string;
   language: ShopifyStoreLanguage;
   clientId: string;
   clientSecret: string;
-  createdAt: string;
-  updatedAt: string;
 };
-
-export type ShopifyStoreFormValues = Omit<
-  ShopifyStore,
-  "id" | "createdAt" | "updatedAt"
->;
 
 export const LANGUAGE_OPTIONS: {
   value: ShopifyStoreLanguage;

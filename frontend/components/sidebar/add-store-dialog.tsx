@@ -40,13 +40,15 @@ import {
 type AddStoreDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (values: ShopifyStoreFormValues) => void;
+  onSubmit: (values: ShopifyStoreFormValues) => void | Promise<void>;
+  isSubmitting?: boolean;
 };
 
 export function AddStoreDialog({
   open,
   onOpenChange,
   onSubmit,
+  isSubmitting: externalSubmitting = false,
 }: AddStoreDialogProps) {
   const {
     register,
@@ -190,10 +192,12 @@ export function AddStoreDialog({
           <DialogFooter className="mt-6">
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || externalSubmitting}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
-              {isSubmitting ? "Enregistrement..." : "Enregistrer"}
+              {isSubmitting || externalSubmitting
+                ? "Enregistrement..."
+                : "Enregistrer"}
             </Button>
           </DialogFooter>
         </form>
