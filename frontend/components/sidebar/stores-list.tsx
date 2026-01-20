@@ -1,6 +1,13 @@
 "use client";
 
-import { Store, MoreHorizontal, Trash2 } from "lucide-react";
+import {
+  Store,
+  MoreHorizontal,
+  Trash2,
+  ExternalLink,
+  Package,
+  Layers,
+} from "lucide-react";
 
 import {
   SidebarMenu,
@@ -18,6 +25,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 import type { ShopifyStore } from "@/types/shopify";
+import { NavMain } from "./nav-main";
+import { NavMainItem } from "@/types/menu";
 
 type StoresListProps = {
   stores: ShopifyStore[];
@@ -27,6 +36,24 @@ type StoresListProps = {
 
 export function StoresList({ stores, isLoading, onDelete }: StoresListProps) {
   const { isMobile } = useSidebar();
+
+  const storeNavMain: NavMainItem[] = stores.map((store) => ({
+    title: store.name,
+    url: "#",
+    icon: Package,
+    items: [
+      {
+        title: "Collections",
+        url: "#",
+        icon: Layers,
+      },
+      {
+        title: "Produits",
+        url: "#",
+        icon: Package,
+      },
+    ],
+  }));
 
   if (isLoading) {
     return (
@@ -55,12 +82,7 @@ export function StoresList({ stores, isLoading, onDelete }: StoresListProps) {
     <SidebarMenu>
       {stores.map((store) => (
         <SidebarMenuItem key={store.id}>
-          <SidebarMenuButton asChild>
-            <a href={store.url} target="_blank" rel="noopener noreferrer">
-              <Store />
-              <span>{store.name}</span>
-            </a>
-          </SidebarMenuButton>
+          <NavMain items={storeNavMain} />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <SidebarMenuAction showOnHover>
@@ -73,6 +95,12 @@ export function StoresList({ stores, isLoading, onDelete }: StoresListProps) {
               side={isMobile ? "bottom" : "right"}
               align={isMobile ? "end" : "start"}
             >
+              <DropdownMenuItem
+                onClick={() => window.open(store.url, "_blank")}
+              >
+                <ExternalLink />
+                <span>Voir la boutique</span>
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onDelete(store.id)}
                 className="text-destructive focus:text-destructive"

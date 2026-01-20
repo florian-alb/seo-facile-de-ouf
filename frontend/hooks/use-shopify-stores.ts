@@ -14,6 +14,7 @@ export function useStores() {
       setIsLoading(true);
       setError(null);
       const data = await apiFetch<ShopifyStore[]>("/stores");
+      console.log(data)
       setStores(data);
     } catch (err) {
       if (err instanceof ApiError) {

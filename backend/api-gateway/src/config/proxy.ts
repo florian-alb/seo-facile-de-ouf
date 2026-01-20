@@ -33,10 +33,10 @@ export const setupProxies = (app: Application, routes: Route[]): void => {
       );
     }
 
-    // Use explicit app.use(path, middleware) overload to avoid
-    // ambiguities with the factory overload. This ensures the
-    // `proxyOptions` object (including `target`) is passed as
-    // the options argument to `createProxyMiddleware`.
+    // http-proxy-middleware@3: mount by path and pass options separately.
+    // Note: Express will strip the mount path from `req.url`. For routes that
+    // need the prefix on the target service (e.g. /stores), handle it via
+    // route-specific `pathRewrite` (see routes.ts).
     app.use(route.url, createProxyMiddleware(proxyOptions));
   });
 };

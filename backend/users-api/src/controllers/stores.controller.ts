@@ -6,9 +6,12 @@ export async function getAllStores(
   res: Response,
   next: NextFunction
 ) {
+  console.log("userId");
   try {
     const userId = req.userId!;
+    console.log("userId", userId);
     const stores = await storeService.getStoresByUserId(userId);
+    console.log("stores", stores);
     res.json(stores);
   } catch (err) {
     next(err);

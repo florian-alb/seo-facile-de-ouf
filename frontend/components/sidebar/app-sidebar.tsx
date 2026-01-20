@@ -2,13 +2,8 @@
 
 import type { UserPublic } from "@seo-facile-de-ouf/shared/src/user";
 
-import {
-  Command,
-} from "lucide-react";
+import { Command } from "lucide-react";
 
-import { NavMain } from "@/components/sidebar/nav-main";
-import { NavProjects } from "@/components/sidebar/nav-projects";
-import { NavSecondary } from "@/components/sidebar/nav-secondary";
 import { NavUser } from "@/components/sidebar/nav-user";
 import { StoresSection } from "@/components/sidebar/stores-section";
 import {
@@ -21,19 +16,11 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 
-import {SidebarNavMenu} from "@/types/menu"
-
-const data: SidebarNavMenu = {
-  navMain: [],
-  navSecondary: [],
-  projects: [],
-  }
-
 export function AppSidebar({
   user,
   onLogout,
 }: {
-  user: UserPublic,
+  user: UserPublic;
   onLogout: () => Promise<void>;
 }) {
   return (
@@ -47,7 +34,9 @@ export function AppSidebar({
                   <Command className="size-4" />
                 </div>
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-medium">Seo Facile De Ouf</span>
+                  <span className="truncate font-medium">
+                    Seo Facile De Ouf
+                  </span>
                   <span className="truncate text-xs">Enterprise</span>
                 </div>
               </a>
@@ -57,9 +46,6 @@ export function AppSidebar({
       </SidebarHeader>
       <SidebarContent>
         <StoresSection />
-        {data.navMain && <NavMain items={data.navMain} />}
-        {data.projects && <NavProjects projects={data.projects} />}
-        {data.navSecondary && <NavSecondary items={data.navSecondary} className="mt-auto" />}
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={user} handlLogout={onLogout} />
