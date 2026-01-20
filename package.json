@@ -1,4 +1,10 @@
 {
+  "name": "seo-facile-de-ouf",
+  "workspaces": [
+    "backend/*",
+    "frontend",
+    "shared"
+  ],
   "devDependencies": {
     "husky": "^9.1.7",
     "shadcn": "^3.5.1"

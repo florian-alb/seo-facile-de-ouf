@@ -28,7 +28,7 @@ export const ROUTES: Route[] = [
   // User routes
   {
     url: "/users",
-    auth: false,
+    auth: true,
     creditCheck: false,
     proxy: {
       target: process.env.USERS_API_URL || "http://localhost:5001",
@@ -36,10 +36,23 @@ export const ROUTES: Route[] = [
       pathRewrite: { "^/users": "" },
     },
   },
+  // Store routes (scoped to the authenticated user)
+  {
+    url: "/stores",
+    auth: true,
+    creditCheck: false,
+    proxy: {
+      target: process.env.USERS_API_URL || "http://localhost:5001",
+      changeOrigin: true,
+      // Express strips the mount path (/stores) before proxying (so "/" would hit users router).
+      // Re-add it so users-api receives "/stores/..." and matches storeRouter.
+      pathRewrite: (path: string) => `/stores${path}`,
+    },
+  },
   // Generation routes
   {
     url: "/generations",
-    auth: false,
+    auth: true,
     creditCheck: false,
     proxy: {
       target: process.env.GENERATIONS_API_URL || "http://localhost:5002",

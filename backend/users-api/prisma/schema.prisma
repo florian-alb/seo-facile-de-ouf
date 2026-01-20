@@ -18,8 +18,26 @@ model User {
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
   accounts      Account[]
+  stores        Store[]
 
   @@map("user")
+}
+
+model Store {
+  id                    String   @id @default(uuid())
+  userId                String
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                  String
+  url                   String
+  shopifyDomain         String
+  language              String
+  encryptedClientId     String
+  encryptedClientSecret String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@index([userId])
+  @@map("store")
 }
 
 model Session {
