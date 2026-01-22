@@ -24,17 +24,20 @@ model User {
 }
 
 model Store {
-  id                    String   @id @default(uuid())
+  id                    String               @id @default(uuid())
   userId                String
-  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   name                  String
   url                   String
   shopifyDomain         String
   language              String
   encryptedClientId     String
   encryptedClientSecret String
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  encryptedAccessToken  String?              // Access token for Shopify API
+  lastSyncedAt          DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  collections           ShopifyCollection[]
 
   @@index([userId])
   @@map("store")
@@ -96,4 +99,30 @@ model Jwks {
   expiresAt  DateTime?
 
   @@map("jwks")
+}
+
+model ShopifyCollection {
+  id                            String   @id @default(cuid())
+  shopifyGid                    String
+  legacyResourceId              String
+  storeId                       String
+  title                         String
+  handle                        String
+  productsCount                 Int      @default(0)
+  description                   String?  @db.Text
+  descriptionHtml               String?  @db.Text
+  imageUrl                      String?
+  imageAlt                      String?
+  sortOrder                     String?
+  publishedOnCurrentPublication Boolean  @default(false)
+  isSmartCollection             Boolean  @default(false)
+  shopifyUpdatedAt              DateTime
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+  store                         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([shopifyGid, storeId])
+  @@unique([legacyResourceId, storeId])
+  @@index([storeId])
+  @@map("shopify_collection")
 }

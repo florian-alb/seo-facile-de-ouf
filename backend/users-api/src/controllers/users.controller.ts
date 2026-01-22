@@ -39,7 +39,9 @@ export async function getUserById(
   next: NextFunction
 ) {
   try {
-    const id = req.params.id;
+    const id = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
     const user = await usersService.getUserById(id);
     if (!user) {
       return res.status(404).json({ error: "user not found" });
@@ -56,7 +58,9 @@ export async function addGenerationToUser(
   next: NextFunction
 ) {
   try {
-    const id = req.params.id;
+    const id = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
 
     if (!id) {
       return res.status(400).json({ error: "invalid id" });

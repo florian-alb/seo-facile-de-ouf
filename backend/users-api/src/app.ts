@@ -5,6 +5,7 @@ import { auth } from "./lib/auth";
 import authRouter from "./routes/auth.routes";
 import userRouter from "./routes/user.routes";
 import storeRouter from "./routes/store.routes";
+import collectionsRouter from "./routes/shopify-collections.routes";
 import { errorHandler } from "./middlewares/error.middleware";
 
 const createApp = (): Application => {
@@ -26,6 +27,7 @@ const createApp = (): Application => {
 
   app.use("/auth", authRouter);
   app.use("/stores", storeRouter);
+  app.use("/", collectionsRouter);
   app.use("/", userRouter);
 
   app.use(errorHandler);

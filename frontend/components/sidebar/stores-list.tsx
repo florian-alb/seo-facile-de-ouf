@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Package,
   Layers,
+  Pencil,
 } from "lucide-react";
 
 import {
@@ -32,9 +33,10 @@ type StoresListProps = {
   stores: ShopifyStore[];
   isLoading: boolean;
   onDelete: (id: string) => void;
+  onEdit: (id: string) => void;
 };
 
-export function StoresList({ stores, isLoading, onDelete }: StoresListProps) {
+export function StoresList({ stores, isLoading, onDelete, onEdit }: StoresListProps) {
   const { isMobile } = useSidebar();
 
   const storeNavMain: NavMainItem[] = stores.map((store) => ({
@@ -44,7 +46,7 @@ export function StoresList({ stores, isLoading, onDelete }: StoresListProps) {
     items: [
       {
         title: "Collections",
-        url: "#",
+        url: `/dashboard/store/${store.id}/collections`,
         icon: Layers,
       },
       {
@@ -100,6 +102,10 @@ export function StoresList({ stores, isLoading, onDelete }: StoresListProps) {
               >
                 <ExternalLink />
                 <span>Voir la boutique</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onEdit(store.id)}>
+                <Pencil />
+                <span>Modifier</span>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => onDelete(store.id)}

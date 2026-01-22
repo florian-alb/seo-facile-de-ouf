@@ -25,7 +25,9 @@ export async function getStoreById(
 ) {
   try {
     const userId = req.userId!;
-    const storeId = req.params.id;
+    const storeId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
 
     const store = await storeService.getStoreById(storeId, userId);
 
@@ -85,7 +87,9 @@ export async function updateStore(
 ) {
   try {
     const userId = req.userId!;
-    const storeId = req.params.id;
+    const storeId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
     const { name, url, shopifyDomain, language, clientId, clientSecret } =
       req.body;
 
@@ -115,7 +119,9 @@ export async function deleteStore(
 ) {
   try {
     const userId = req.userId!;
-    const storeId = req.params.id;
+    const storeId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
 
     const deleted = await storeService.deleteStore(storeId, userId);
 

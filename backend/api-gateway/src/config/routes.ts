@@ -49,6 +49,17 @@ export const ROUTES: Route[] = [
       pathRewrite: (path: string) => `/stores${path}`,
     },
   },
+  // Shopify collections routes
+  {
+    url: "/shops",
+    auth: true,
+    creditCheck: false,
+    proxy: {
+      target: process.env.USERS_API_URL || "http://localhost:5001",
+      changeOrigin: true,
+      pathRewrite: (path: string) => `/shops${path}`,
+    },
+  },
   // Generation routes
   {
     url: "/generations",
