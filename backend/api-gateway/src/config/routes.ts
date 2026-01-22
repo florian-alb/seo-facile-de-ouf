@@ -36,26 +36,35 @@ export const ROUTES: Route[] = [
       pathRewrite: { "^/users": "" },
     },
   },
-  // Store routes (scoped to the authenticated user)
+  // Store routes (scoped to the authenticated user) → shop-api
   {
     url: "/stores",
     auth: true,
     creditCheck: false,
     proxy: {
-      target: process.env.USERS_API_URL || "http://localhost:5001",
+      target: process.env.SHOP_API_URL || "http://localhost:5003",
       changeOrigin: true,
-      // Express strips the mount path (/stores) before proxying (so "/" would hit users router).
-      // Re-add it so users-api receives "/stores/..." and matches storeRouter.
       pathRewrite: (path: string) => `/stores${path}`,
     },
   },
-  // Shopify collections routes
+  // Shopify OAuth routes (no auth required for OAuth flow) → shop-api
+  {
+    url: "/shopify/oauth",
+    auth: false,
+    creditCheck: false,
+    proxy: {
+      target: process.env.SHOP_API_URL || "http://localhost:5003",
+      changeOrigin: true,
+      pathRewrite: (path: string) => `/shopify/oauth${path}`,
+    },
+  },
+  // Shopify collections routes → shop-api
   {
     url: "/shops",
     auth: true,
     creditCheck: false,
     proxy: {
-      target: process.env.USERS_API_URL || "http://localhost:5001",
+      target: process.env.SHOP_API_URL || "http://localhost:5003",
       changeOrigin: true,
       pathRewrite: (path: string) => `/shops${path}`,
     },

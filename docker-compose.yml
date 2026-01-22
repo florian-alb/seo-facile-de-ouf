@@ -32,6 +32,7 @@ services:
       - PORT=4000
       - GENERATIONS_API_URL=${GENERATIONS_API_URL}
       - USERS_API_URL=${USERS_API_URL}
+      - SHOP_API_URL=${SHOP_API_URL}
       - MONGO_EXPRESS_URL=${MONGO_EXPRESS_URL}
     restart: unless-stopped
     networks:
@@ -39,6 +40,7 @@ services:
     depends_on:
       - generations-api
       - users-api
+      - shop-api
 
   users-api:
     build:
@@ -58,6 +60,34 @@ services:
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=users_db
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/users_db
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  shop-api:
+    build:
+      context: ./backend/shop-api
+      dockerfile: Dockerfile.dev
+    container_name: shop-api
+    ports:
+      - "${SHOP_API_PORT:-5003}:5003"
+    volumes:
+      - ./backend/shop-api:/src
+      - /src/node_modules
+    environment:
+      - PORT=5003
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=seo_facile_shops
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/seo_facile_shops
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - SHOPIFY_HOST_NAME=${SHOPIFY_HOST_NAME:-localhost:4000}
     restart: unless-stopped
     networks:
       - app-network
@@ -116,11 +146,12 @@ services:
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=users_db
+      - POSTGRES_DB=postgres
     ports:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init-databases.sh:/docker-entrypoint-initdb.d/init-databases.sh
     networks:
       - app-network
     healthcheck:

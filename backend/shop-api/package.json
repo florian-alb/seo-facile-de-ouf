@@ -1,0 +1,38 @@
+{
+  "name": "shop-api",
+  "version": "1.0.0",
+  "description": "Shopify stores and collections management API",
+  "main": "dist/index.js",
+  "scripts": {
+    "generate": "prisma generate",
+    "build": "npm run generate && tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push",
+    "postinstall": "prisma generate",
+    "prebuild": "npm run generate"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.23.0",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.0.1",
+    "@prisma/client": "^7.0.1",
+    "@seo-facile-de-ouf/shared": "workspace:*",
+    "@shopify/shopify-api": "^12.3.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.1",
+    "prisma": "^7.0.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

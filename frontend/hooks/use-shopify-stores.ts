@@ -37,14 +37,20 @@ export function useStores() {
   }, [fetchStores]);
 
   const addStore = useCallback(
-    async (formValues: ShopifyStoreFormValues): Promise<ShopifyStore> => {
+    async (formValues: ShopifyStoreFormValues): Promise<void> => {
+      // 1. Create store in DB with credentials
       const newStore = await apiFetch<ShopifyStore>("/stores", {
         method: "POST",
         body: JSON.stringify(formValues),
       });
 
-      setStores((prev) => [newStore, ...prev]);
-      return newStore;
+      // 2. Start OAuth flow with the new store
+      const response = await apiFetch<{ authUrl: string; state: string }>(
+        `/shopify/oauth/auth?storeId=${newStore.id}`
+      );
+
+      // 3. Redirect to Shopify OAuth
+      window.location.href = response.authUrl;
     },
     []
   );

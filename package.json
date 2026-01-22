@@ -15,8 +15,9 @@
     "frontend": "cd frontend && pnpm run dev",
     "api-gateway": "cd backend/api-gateway && pnpm run dev",
     "users-api": "cd backend/users-api && pnpm run dev",
+    "shop-api": "cd backend/shop-api && pnpm run dev",
     "generations-api": "cd backend/generations-api && pnpm run dev",
-    "dev": "concurrently \"pnpm run frontend\" \"pnpm run api-gateway\" \"pnpm run users-api\" \"pnpm run generations-api\""
+    "dev": "concurrently \"pnpm run frontend\" \"pnpm run api-gateway\" \"pnpm run users-api\" \"pnpm run shop-api\" \"pnpm run generations-api\""
   },
   "dependencies": {
     "concurrently": "^9.2.1"

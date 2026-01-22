@@ -1,0 +1,54 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Store model - contains Shopify shop credentials and OAuth tokens
+model Store {
+  id                    String               @id @default(uuid())
+  userId                String               // Reference to User in users-api (cross-service)
+  name                  String
+  url                   String
+  shopifyDomain         String               @unique
+  language              String               @default("fr")
+  encryptedClientId     String
+  encryptedClientSecret String
+  encryptedAccessToken  String?              // Access token from OAuth
+  lastSyncedAt          DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  collections           ShopifyCollection[]
+
+  @@index([userId])
+  @@map("store")
+}
+
+// ShopifyCollection model - synced collections from Shopify
+model ShopifyCollection {
+  id                            String   @id @default(cuid())
+  shopifyGid                    String   // e.g., "gid://shopify/Collection/123"
+  legacyResourceId              String   // Numeric ID for REST API compatibility
+  storeId                       String
+  title                         String
+  handle                        String
+  productsCount                 Int      @default(0)
+  description                   String?  @db.Text
+  descriptionHtml               String?  @db.Text
+  imageUrl                      String?
+  imageAlt                      String?
+  sortOrder                     String?  // MANUAL, BEST_SELLING, etc.
+  publishedOnCurrentPublication Boolean  @default(false)
+  isSmartCollection             Boolean  @default(false)
+  shopifyUpdatedAt              DateTime
+  createdAt                     DateTime @default(now())
+  updatedAt                     DateTime @updatedAt
+  store                         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([shopifyGid, storeId])
+  @@unique([legacyResourceId, storeId])
+  @@index([storeId])
+  @@map("shopify_collection")
+}

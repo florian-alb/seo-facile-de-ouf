@@ -26,11 +26,9 @@ export function StoresSection() {
     try {
       setIsSubmitting(true);
       await addStore(values);
-      setDialogOpen(false);
-      toast.success("Boutique ajoutée avec succès!");
+      // OAuth flow will redirect, no need to close dialog
     } catch {
       toast.error("Erreur lors de l'ajout de la boutique.");
-    } finally {
       setIsSubmitting(false);
     }
   };

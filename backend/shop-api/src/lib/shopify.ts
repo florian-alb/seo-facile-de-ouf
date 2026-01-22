@@ -8,14 +8,15 @@ import type { ShopifyCredentials } from "@seo-facile-de-ouf/shared/src/shopify";
  */
 function createShopifyClient(credentials: ShopifyCredentials) {
   return shopifyApi({
-    apiKey: credentials.clientId || "custom-app",
-    apiSecretKey: credentials.clientSecret || "custom-app-secret",
+    // For custom apps, these are dummy values - the real auth is in adminApiAccessToken
+    apiKey: "custom-app-key",
+    apiSecretKey: "custom-app-secret",
     scopes: ["read_products", "read_collections"],
-    hostName: credentials.shopifyDomain,
-    apiVersion: ApiVersion.January25,
+    hostName: credentials.shopifyDomain.replace(/^https?:\/\//, ""), // Remove protocol if present
+    apiVersion: ApiVersion.January26,
     isEmbeddedApp: false,
     isCustomStoreApp: true,
-    adminApiAccessToken: credentials.accessToken, // This is required for custom apps
+    adminApiAccessToken: credentials.accessToken, // This is the actual custom app access token
   });
 }
 
@@ -39,13 +40,13 @@ export async function shopifyAdminGraphQL<T>(
     // Create Shopify client for this shop
     const shopify = createShopifyClient(credentials);
 
-    // Create a session for this request
-    const session = new Session({
-      id: `offline_${credentials.shopifyDomain}`,
-      shop: credentials.shopifyDomain,
-      state: "offline",
-      isOnline: false,
-      accessToken: credentials.accessToken,
+    // For custom apps, use customAppSession instead of creating a Session manually
+    const session = shopify.session.customAppSession(credentials.shopifyDomain);
+
+    console.log("📝 Session created:", {
+      id: session.id,
+      shop: session.shop,
+      accessToken: session.accessToken?.substring(0, 15) + "...",
     });
 
     // Create GraphQL client

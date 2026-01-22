@@ -13,7 +13,7 @@ RUN npm install
 
 COPY . .
 
-EXPOSE 5001
+EXPOSE 5003
 
 # Generate Prisma client, push schema to DB, and start the app
 CMD ["sh", "-c", "npx prisma generate && npx prisma db push --accept-data-loss && npm run dev"]
