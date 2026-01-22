@@ -1,19 +1,26 @@
-FROM node:20-bullseye-slim
+FROM node:20-alpine
+
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
 
 WORKDIR /src
 
-RUN apt-get update \
-	&& apt-get install -y --no-install-recommends ca-certificates openssl libssl1.1 \
-	&& rm -rf /var/lib/apt/lists/*
+# Copier les fichiers workspace
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-COPY package*.json ./
-COPY prisma ./prisma
+# Copier shared
+COPY shared ./shared
 
-RUN npm install
+# Copier le service
+COPY backend/users-api ./backend/users-api
 
-COPY . .
+# Installer les dépendances
+RUN pnpm install --filter public-api...
+
+WORKDIR /src/backend/users-api
+
+# Prisma
+RUN pnpm prisma generate
 
 EXPOSE 5001
 
-# Generate Prisma client, push schema to DB, and start the app
-CMD ["sh", "-c", "npx prisma generate && npx prisma db push --accept-data-loss && npm run dev"]
+CMD ["pnpm", "run", "dev"]

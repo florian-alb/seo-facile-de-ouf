@@ -1,15 +1,16 @@
 services:
   frontend:
     build:
-      context: ./frontend
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: frontend/Dockerfile.dev
     container_name: frontend
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - ./frontend:/src/frontend
+      - ./shared:/src/shared
+      - /src/frontend/node_modules
+      - /src/frontend/.next
     environment:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000}
     restart: unless-stopped
@@ -44,14 +45,15 @@ services:
 
   users-api:
     build:
-      context: ./backend/users-api
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: backend/users-api/Dockerfile.dev
     container_name: users-api
     ports:
       - "${USERS_API_PORT:-5001}:5001"
     volumes:
-      - ./backend/users-api:/src
-      - /src/node_modules
+      - ./backend/users-api:/src/backend/users-api
+      - ./shared:/src/shared
+      - /src/backend/users-api/node_modules
     environment:
       - PORT=5001
       - POSTGRES_HOST=postgres
@@ -69,14 +71,15 @@ services:
 
   shop-api:
     build:
-      context: ./backend/shop-api
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: backend/shop-api/Dockerfile.dev
     container_name: shop-api
     ports:
       - "${SHOP_API_PORT:-5003}:5003"
     volumes:
-      - ./backend/shop-api:/src
-      - /src/node_modules
+      - ./backend/shop-api:/src/backend/shop-api
+      - ./shared:/src/shared
+      - /src/backend/shop-api/node_modules
     environment:
       - PORT=5003
       - POSTGRES_HOST=postgres
