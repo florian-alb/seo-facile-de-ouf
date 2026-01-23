@@ -14,6 +14,7 @@ model Store {
   url                   String
   shopifyDomain         String               @unique
   language              String               @default("fr")
+  status                String               @default("pending") // pending, connected, error
   encryptedClientId     String
   encryptedClientSecret String
   encryptedAccessToken  String?              // Access token from OAuth
