@@ -10,7 +10,7 @@ export const setupProxies = (app: Application, routes: Route[]): void => {
     // to become `/users/users` on the target and be interpreted as an id).
     const proxyOptions = {
       ...route.proxy,
-      // Preserve CORS headers
+            // Preserve CORS headers
       onProxyRes: (proxyRes: any, req: any, res: any) => {
         // Allow CORS headers to pass through
         if (req.headers.origin) {

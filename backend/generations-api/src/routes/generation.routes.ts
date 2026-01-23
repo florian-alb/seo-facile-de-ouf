@@ -37,7 +37,7 @@ router.post('/generate', async (req: Request, res: Response) => {
     // 2. Publier dans RabbitMQ
     await publishJob({
       jobId: generation._id.toString(),
-      type: type || 'full_description'
+      type: type || 'meta_only'
     });
     
     // 3. Répondre immédiatement avec le jobId
@@ -50,7 +50,7 @@ router.post('/generate', async (req: Request, res: Response) => {
     
   } catch (error) {
     console.error('Error creating generation:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Internal server error', details: error instanceof Error ? error.message : String(error) });
   }
 });
 
@@ -107,7 +107,7 @@ router.post('/generate/bulk', async (req: Request, res: Response) => {
         
         await publishJob({
           jobId: generation._id.toString(),
-          type: type || 'full_description'
+          type: type || 'meta_only'
         });
         
         return {

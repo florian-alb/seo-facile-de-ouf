@@ -1,4 +1,5 @@
 import { Generation } from "../models/generation.model";
+import mongoose from "mongoose";
 
 export async function getAll() {
   try {
@@ -15,6 +16,11 @@ export async function getAll() {
 
 export async function getById(id: string) {
   try {
+    // Validate MongoDB ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new Error(`Invalid generation ID format: ${id}. Must be a valid MongoDB ObjectId (24 hex characters)`);
+    }
+    
     const generation = await Generation.findById(id);
     return generation;
   } catch (error: unknown) {

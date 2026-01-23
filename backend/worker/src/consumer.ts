@@ -1,8 +1,7 @@
-// backend/worker/src/consumer.ts
 import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
 // import { generateWithClaude } from './services/claude.service';
 import { generateWithOpenAI } from './services/openai.service';
-import { Generation, IGeneration } from '../../generations-api/src/models/generation.model.ts';
+import { Generation, IGeneration } from './models/generation.model';
  
 const QUEUE_NAME = 'ai-generation-jobs';
 const MAX_RETRIES = 3;
@@ -136,12 +135,10 @@ async function generateContent(
     productName: generation.productName,
     keywords: generation.keywords
   };
-  
   switch (type) {
     case 'full_description':
       // Claude pour les descriptions complètes (meilleure qualité)
-      return await generateWithClaude(input);
-      
+      // return await generateWithClaude(input);
     case 'meta_only':
     case 'slug_only':
       // OpenAI pour les meta tags (moins cher)
@@ -153,6 +150,6 @@ async function generateContent(
       };
       
     default:
-      return await generateWithClaude(input);
+      // return await generateWithClaude(input);
   }
 }

@@ -1,0 +1,25 @@
+# Node
+node_modules
+**/node_modules
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+
+# Git
+.git
+
+# Editor
+.vscode
+.idea
+
+# Docker
+Dockerfile*
+
+dist
+build

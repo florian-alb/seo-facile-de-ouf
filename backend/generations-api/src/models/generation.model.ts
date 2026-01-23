@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
- 
+
 export interface IGeneration extends Document {
   // Infos produit
   productId: string;
@@ -29,7 +29,7 @@ export interface IGeneration extends Document {
   updatedAt: Date;
   completedAt?: Date;
 }
- 
+
 const GenerationSchema = new Schema({
   productId: { type: String, required: true },
   productName: { type: String, required: true },
@@ -58,11 +58,11 @@ const GenerationSchema = new Schema({
 }, { 
   timestamps: true 
 });
- 
-// Index pour les requêtes fréquentes
+
+// Index untuk requêtes fréquentes
 GenerationSchema.index({ status: 1, createdAt: -1 });
 GenerationSchema.index({ userId: 1, shopId: 1 });
- 
+
 export const Generation = mongoose.model<IGeneration>(
   'Generation', 
   GenerationSchema

@@ -48,16 +48,15 @@ services:
     build:
       context: ./backend/worker
       dockerfile: Dockerfile
-    container_name: worker
-        environment:
+    environment:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
-      - MONGO_URI=mongodb://mongodb:27017/generations-db
+      - MONGO_URI=mongodb://mongo:27017/generations-db
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     depends_on:
       rabbitmq:
         condition: service_healthy
-      mongodb:
+      mongo:
         condition: service_started
     restart: unless-stopped
     networks:
@@ -155,11 +154,13 @@ services:
     environment:
       - PORT=5002
       - MONGO_URI=${MONGO_URI}
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
     restart: unless-stopped
     networks:
       - app-network
     depends_on:
       - mongo
+      - rabbitmq
 
   mongo:
     image: mongo:latest

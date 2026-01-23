@@ -77,7 +77,7 @@ export const ROUTES: Route[] = [
     proxy: {
       target: process.env.GENERATIONS_API_URL || "http://localhost:5002",
       changeOrigin: true,
-      pathRewrite: { "^/generations": "" },
+      pathRewrite: (path: string) => path,
     },
   },
 ];
