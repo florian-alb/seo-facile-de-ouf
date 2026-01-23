@@ -24,6 +24,7 @@ model Store {
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
   collections    ShopifyCollection[]
+  products       ShopifyProduct[]
 
   @@index([userId])
   @@map("store")
@@ -50,4 +51,38 @@ model ShopifyCollection {
   @@unique([shopifyGid, storeId])
   @@index([storeId])
   @@map("shopify_collection")
+}
+
+// ShopifyProduct model - synced products from Shopify
+model ShopifyProduct {
+  id               String    @id @default(cuid())
+  shopifyGid       String // Global ID GraphQL (ex: "gid://shopify/Product/123456")
+  storeId          String
+  title            String
+  handle           String
+  description      String?   @db.Text
+  descriptionHtml  String?   @db.Text
+  status           String // ACTIVE, DRAFT, ARCHIVED
+  vendor           String?
+  productType      String?
+  tags             String[] // Array of tags
+  price            Decimal   @db.Decimal(10, 2)
+  compareAtPrice   Decimal?  @db.Decimal(10, 2)
+  sku              String?
+  imageUrl         String?
+  imageAlt         String?
+  collectionIds    String[] // Array of collection GIDs ["gid://shopify/Collection/1", ...]
+  shopifyCreatedAt DateTime
+  shopifyUpdatedAt DateTime
+  publishedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([shopifyGid, storeId])
+  @@index([storeId])
+  @@index([storeId, status]) // For filtering by status
+  @@map("shopify_product")
 }

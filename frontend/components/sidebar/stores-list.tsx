@@ -51,7 +51,7 @@ export function StoresList({ stores, isLoading, onDelete, onEdit }: StoresListPr
       },
       {
         title: "Produits",
-        url: "#",
+        url: `/dashboard/store/${store.id}/products`,
         icon: Package,
       },
     ],

@@ -61,3 +61,85 @@ export interface ShopifyGraphQLCollectionsResponse {
     };
   };
 }
+
+// Product types
+export interface ShopifyProduct {
+  id: string;
+  shopifyGid: string;
+  storeId: string;
+  title: string;
+  handle: string;
+  description?: string;
+  descriptionHtml?: string;
+  status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
+  vendor?: string;
+  productType?: string;
+  tags: string[];
+  price: number;
+  compareAtPrice?: number;
+  totalInventory: number;
+  sku?: string;
+  imageUrl?: string;
+  imageAlt?: string;
+  collectionIds: string[];
+  shopifyCreatedAt: Date;
+  shopifyUpdatedAt: Date;
+  publishedAt?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ProductFilters {
+  collectionId?: string;
+  search?: string;
+  status?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
+  minPrice?: number;
+  maxPrice?: number;
+}
+
+export interface SyncProductsResponse {
+  success: boolean;
+  productsCount: number;
+  message: string;
+  syncedAt: Date;
+}
+
+// GraphQL response types
+export interface ShopifyGraphQLProductNode {
+  id: string;
+  title: string;
+  handle: string;
+  description?: string;
+  descriptionHtml?: string;
+  status: string;
+  totalInventory: number;
+  vendor?: string;
+  productType?: string;
+  tags: string[];
+  collections: {
+    edges: Array<{
+      node: {
+        id: string;
+        title: string;
+      };
+    }>;
+  };
+  featuredImage?: {
+    url: string;
+    altText?: string;
+  };
+  variants: {
+    edges: Array<{
+      node: {
+        id: string;
+        price: string;
+        compareAtPrice?: string;
+        sku?: string;
+        inventoryQuantity: number;
+      };
+    }>;
+  };
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string;
+}
