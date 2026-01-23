@@ -1,15 +1,13 @@
 import express, { Application } from "express";
 import cors from "cors";
-import { toNodeHandler } from "better-auth/node";
-import { auth } from "./lib/auth";
-import authRouter from "./routes/auth.routes";
-import userRouter from "./routes/user.routes";
+import storeRouter from "./routes/store.routes";
+import collectionsRouter from "./routes/shopify-collections.routes";
 import { errorHandler } from "./middlewares/error.middleware";
 
 const createApp = (): Application => {
   const app = express();
 
-  // Configure CORS to allow credentials from frontend
+  // Configure CORS to allow credentials from frontend via API Gateway
   app.use(
     cors({
       origin: process.env.FRONTEND_URL || "http://localhost:3000",
@@ -19,12 +17,11 @@ const createApp = (): Application => {
     })
   );
 
-  app.all("/api/auth/*splat", toNodeHandler(auth));
-
   app.use(express.json());
 
-  app.use("/auth", authRouter);
-  app.use("/", userRouter);
+  // Mount routes
+  app.use("/stores", storeRouter);
+  app.use("/", collectionsRouter); // Handles /shops/:shopId/collections
 
   app.use(errorHandler);
 

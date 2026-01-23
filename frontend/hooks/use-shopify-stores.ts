@@ -14,7 +14,7 @@ export function useStores() {
       setIsLoading(true);
       setError(null);
       const data = await apiFetch<ShopifyStore[]>("/stores");
-      console.log(data)
+
       setStores(data);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -37,16 +37,17 @@ export function useStores() {
   }, [fetchStores]);
 
   const addStore = useCallback(
-    async (formValues: ShopifyStoreFormValues): Promise<ShopifyStore> => {
-      const newStore = await apiFetch<ShopifyStore>("/stores", {
+    async (formValues: ShopifyStoreFormValues): Promise<void> => {
+      // Create store in DB with credentials and exchange token automatically
+      await apiFetch<ShopifyStore>("/stores", {
         method: "POST",
         body: JSON.stringify(formValues),
       });
 
-      setStores((prev) => [newStore, ...prev]);
-      return newStore;
+      // Refresh stores list to show connected status
+      await fetchStores();
     },
-    []
+    [fetchStores]
   );
 
   const updateStore = useCallback(
@@ -94,6 +95,24 @@ export function useStores() {
     [stores]
   );
 
+  const retryConnection = useCallback(
+    async (storeId: string): Promise<void> => {
+      // Retry connection by updating the store (triggers token re-exchange)
+      const store = stores.find((s) => s.id === storeId);
+      if (!store) throw new Error("Store not found");
+
+      // Trigger update to force token refresh
+      await apiFetch(`/stores/${storeId}`, {
+        method: "PUT",
+        body: JSON.stringify({}),
+      });
+
+      // Refresh stores list to show updated status
+      await fetchStores();
+    },
+    [stores, fetchStores]
+  );
+
   const refreshStores = useCallback(() => {
     return fetchStores();
   }, [fetchStores]);
@@ -106,6 +125,7 @@ export function useStores() {
     updateStore,
     deleteStore,
     getStore,
+    retryConnection,
     refreshStores,
   };
 }

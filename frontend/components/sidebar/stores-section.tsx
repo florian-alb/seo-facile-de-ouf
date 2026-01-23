@@ -10,23 +10,45 @@ import {
   SidebarGroupAction,
 } from "@/components/ui/sidebar";
 import { AddStoreDialog } from "@/components/sidebar/add-store-dialog";
+import { EditStoreDialog } from "@/components/stores/edit-store-dialog";
 import { StoresList } from "@/components/sidebar/stores-list";
 import { useStores } from "@/hooks/use-shopify-stores";
 import type { ShopifyStoreFormValues } from "@/types/shopify";
 
 export function StoresSection() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingStoreId, setEditingStoreId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { stores, isLoading, error, addStore, deleteStore } = useStores();
+  const { stores, isLoading, error, addStore, updateStore, deleteStore, getStore } = useStores();
 
   const handleAddStore = async (values: ShopifyStoreFormValues) => {
     try {
       setIsSubmitting(true);
       await addStore(values);
-      setDialogOpen(false);
-      toast.success("Boutique ajoutée avec succès!");
+      // OAuth flow will redirect, no need to close dialog
     } catch {
       toast.error("Erreur lors de l'ajout de la boutique.");
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleEditStore = (id: string) => {
+    setEditingStoreId(id);
+    setEditDialogOpen(true);
+  };
+
+  const handleUpdateStore = async (values: ShopifyStoreFormValues) => {
+    if (!editingStoreId) return;
+
+    try {
+      setIsSubmitting(true);
+      await updateStore(editingStoreId, values);
+      setEditDialogOpen(false);
+      setEditingStoreId(null);
+      toast.success("Boutique mise à jour avec succès!");
+    } catch {
+      toast.error("Erreur lors de la mise à jour de la boutique.");
     } finally {
       setIsSubmitting(false);
     }
@@ -40,6 +62,8 @@ export function StoresSection() {
       toast.error("Erreur lors de la suppression.");
     }
   };
+
+  const editingStore = editingStoreId ? getStore(editingStoreId) : null;
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
@@ -60,6 +84,7 @@ export function StoresSection() {
         stores={stores}
         isLoading={isLoading}
         onDelete={handleDeleteStore}
+        onEdit={handleEditStore}
       />
 
       <AddStoreDialog
@@ -68,6 +93,23 @@ export function StoresSection() {
         onSubmit={handleAddStore}
         isSubmitting={isSubmitting}
       />
+
+      {editingStore && (
+        <EditStoreDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          onSubmit={handleUpdateStore}
+          defaultValues={{
+            name: editingStore.name,
+            url: editingStore.url,
+            shopifyDomain: editingStore.shopifyDomain,
+            language: editingStore.language,
+            clientId: "",
+            clientSecret: "",
+          }}
+          isSubmitting={isSubmitting}
+        />
+      )}
     </SidebarGroup>
   );
 }

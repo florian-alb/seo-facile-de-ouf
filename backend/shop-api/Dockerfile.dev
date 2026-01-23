@@ -11,16 +11,16 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY shared ./shared
 
 # Copier le service
-COPY backend/users-api ./backend/users-api
+COPY backend/shop-api ./backend/shop-api
 
 # Installer les dépendances
-RUN pnpm install --filter public-api...
+RUN pnpm install --filter shop-api...
 
-WORKDIR /src/backend/users-api
+WORKDIR /src/backend/shop-api
 
 # Prisma
 RUN pnpm prisma generate
 
-EXPOSE 5001
+EXPOSE 5003
 
 CMD ["pnpm", "run", "dev"]

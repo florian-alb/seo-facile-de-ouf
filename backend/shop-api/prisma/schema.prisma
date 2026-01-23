@@ -1,0 +1,53 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Store model - contains Shopify shop credentials and OAuth tokens
+model Store {
+  id             String              @id @default(uuid())
+  userId         String // Reference to User in users-api (cross-service)
+  name           String
+  url            String
+  shopifyDomain  String              @unique
+  language       String              @default("fr")
+  status         String              @default("pending") // pending, connected, error
+  clientId       String
+  clientSecret   String
+  accessToken    String? // Access token from client credentials grant
+  tokenExpiresAt DateTime? // Token expiration time (24h from grant)
+  lastSyncedAt   DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+  collections    ShopifyCollection[]
+
+  @@index([userId])
+  @@map("store")
+}
+
+// ShopifyCollection model - synced collections from Shopify
+model ShopifyCollection {
+  id               String   @id @default(cuid())
+  shopifyGid       String // e.g., "gid://shopify/Collection/123"
+  storeId          String
+  title            String
+  handle           String
+  descriptionHtml  String?  @db.Text
+  imageUrl         String?
+  imageAlt         String?
+  seoDescription   String?  @db.Text
+  seoTitle         String?
+  productsCount    Int      @default(0)
+  shopifyUpdatedAt DateTime
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  store            Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([shopifyGid, storeId])
+  @@index([storeId])
+  @@map("shopify_collection")
+}

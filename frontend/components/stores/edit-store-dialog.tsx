@@ -11,34 +11,37 @@ import {
 import { StoreForm } from "@/components/stores/store-form";
 import type { ShopifyStoreFormValues } from "@/types/shopify";
 
-type AddStoreDialogProps = {
+type EditStoreDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: ShopifyStoreFormValues) => void | Promise<void>;
+  defaultValues?: Partial<ShopifyStoreFormValues>;
   isSubmitting?: boolean;
 };
 
-export function AddStoreDialog({
+export function EditStoreDialog({
   open,
   onOpenChange,
   onSubmit,
+  defaultValues,
   isSubmitting = false,
-}: AddStoreDialogProps) {
+}: EditStoreDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Ajouter une boutique</DialogTitle>
+          <DialogTitle>Modifier la boutique</DialogTitle>
           <DialogDescription>
-            Connectez votre boutique Shopify pour générer du contenu SEO.
+            Mettez à jour les informations de votre boutique Shopify.
           </DialogDescription>
         </DialogHeader>
 
         <StoreForm
+          defaultValues={defaultValues}
           onSubmit={onSubmit}
           onCancel={() => onOpenChange(false)}
           isSubmitting={isSubmitting}
-          submitLabel="Ajouter"
+          submitLabel="Mettre à jour"
         />
       </DialogContent>
     </Dialog>

@@ -8,6 +8,7 @@ export type ShopifyStore = {
   url: string;
   shopifyDomain: string;
   language: ShopifyStoreLanguage;
+  status: "pending" | "connected" | "error";
   createdAt: string;
   updatedAt: string;
 };
