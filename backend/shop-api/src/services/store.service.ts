@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { exchangeTokenWithShopify, isTokenExpired } from "./token.service";
+import { encrypt, decrypt } from "../lib/encryption";
 
 export interface CreateStoreInput {
   name: string;
@@ -46,8 +47,8 @@ export async function createStore(
       url: input.url,
       shopifyDomain: input.shopifyDomain,
       language: input.language,
-      clientId: input.clientId,
-      clientSecret: input.clientSecret,
+      clientId: encrypt(input.clientId),
+      clientSecret: encrypt(input.clientSecret),
       status: "pending",
     },
   });
@@ -60,11 +61,11 @@ export async function createStore(
       input.clientSecret
     );
 
-    // Update store with token
+    // Update store with token (encrypted)
     const updatedStore = await prisma.store.update({
       where: { id: store.id },
       data: {
-        accessToken,
+        accessToken: encrypt(accessToken),
         tokenExpiresAt: expiresAt,
         status: "connected",
       },
@@ -130,20 +131,24 @@ export async function getStoreCredentials(
 
   if (!store) return null;
 
+  // Decrypt credentials for use
+  const decryptedClientId = decrypt(store.clientId);
+  const decryptedClientSecret = decrypt(store.clientSecret);
+
   // Check if token needs refresh
   if (isTokenExpired(store.tokenExpiresAt)) {
     try {
       const { accessToken, expiresAt } = await exchangeTokenWithShopify(
         store.shopifyDomain,
-        store.clientId,
-        store.clientSecret
+        decryptedClientId,
+        decryptedClientSecret
       );
 
-      // Update store with new token
+      // Update store with new token (encrypted)
       await prisma.store.update({
         where: { id: storeId },
         data: {
-          accessToken,
+          accessToken: encrypt(accessToken),
           tokenExpiresAt: expiresAt,
           status: "connected",
         },
@@ -163,14 +168,14 @@ export async function getStoreCredentials(
     }
   }
 
-  // Token is still valid
+  // Token is still valid - decrypt it
   if (!store.accessToken) {
     throw new Error("Store has no access token");
   }
 
   return {
     shopifyDomain: store.shopifyDomain,
-    accessToken: store.accessToken,
+    accessToken: decrypt(store.accessToken),
   };
 }
 
@@ -198,11 +203,19 @@ export async function updateStore(
 
   // If credentials are updated, re-exchange for token
   if (input.clientId !== undefined || input.clientSecret !== undefined) {
-    const clientId = input.clientId || existing.clientId;
-    const clientSecret = input.clientSecret || existing.clientSecret;
+    // Decrypt existing credentials if not updating them
+    const clientId =
+      input.clientId !== undefined
+        ? input.clientId
+        : decrypt(existing.clientId);
+    const clientSecret =
+      input.clientSecret !== undefined
+        ? input.clientSecret
+        : decrypt(existing.clientSecret);
 
-    updateData.clientId = clientId;
-    updateData.clientSecret = clientSecret;
+    // Encrypt new credentials
+    updateData.clientId = encrypt(clientId);
+    updateData.clientSecret = encrypt(clientSecret);
 
     try {
       const { accessToken, expiresAt } = await exchangeTokenWithShopify(
@@ -211,7 +224,7 @@ export async function updateStore(
         clientSecret
       );
 
-      updateData.accessToken = accessToken;
+      updateData.accessToken = encrypt(accessToken);
       updateData.tokenExpiresAt = expiresAt;
       updateData.status = "connected";
     } catch (error) {
