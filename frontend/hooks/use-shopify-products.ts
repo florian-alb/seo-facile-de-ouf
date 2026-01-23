@@ -10,7 +10,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 
 export function useShopifyProducts(storeId: string) {
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
-  const [filters, setFilters] = useState<ProductFilters>({});
+  //const [filters, setFilters] = useState<ProductFilters>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -21,14 +21,14 @@ export function useShopifyProducts(storeId: string) {
       setError(null);
 
       try {
-        const activeFilters = newFilters ?? filters;
+        //const activeFilters = newFilters ?? filters;
 
         // Build query string
         const params = new URLSearchParams();
-        if (activeFilters.collectionId)
-          params.set("collectionId", activeFilters.collectionId);
-        if (activeFilters.search) params.set("search", activeFilters.search);
-        if (activeFilters.status) params.set("status", activeFilters.status);
+        // if (activeFilters.collectionId)
+        //   params.set("collectionId", activeFilters.collectionId);
+        // if (activeFilters.search) params.set("search", activeFilters.search);
+        // if (activeFilters.status) params.set("status", activeFilters.status);
 
         const queryString = params.toString();
         const url = `/shops/${storeId}/products${queryString ? `?${queryString}` : ""}`;
@@ -46,7 +46,7 @@ export function useShopifyProducts(storeId: string) {
         setIsLoading(false);
       }
     },
-    [storeId, filters]
+    [storeId]
   );
 
   const syncProducts = useCallback(async () => {
@@ -76,23 +76,23 @@ export function useShopifyProducts(storeId: string) {
     }
   }, [storeId, fetchProducts]);
 
-  const updateFilters = useCallback((newFilters: Partial<ProductFilters>) => {
-    setFilters((prev) => ({ ...prev, ...newFilters }));
-  }, []);
+  // const updateFilters = useCallback((newFilters: Partial<ProductFilters>) => {
+  //   setFilters((prev) => ({ ...prev, ...newFilters }));
+  // }, []);
 
-  const clearFilters = useCallback(() => {
-    setFilters({});
-  }, []);
+  // const clearFilters = useCallback(() => {
+  //   setFilters({});
+  // }, []);
 
   return {
     products,
-    filters,
+    //filters,
     isLoading,
     isSyncing,
     error,
     fetchProducts,
     syncProducts,
-    updateFilters,
-    clearFilters,
+    // updateFilters,
+    // clearFilters,
   };
 }

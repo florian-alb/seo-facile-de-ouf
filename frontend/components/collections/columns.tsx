@@ -1,19 +1,18 @@
 "use client";
 
-import { TableCell, TableRow } from "@/components/ui/table";
+import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
-import Image from 'next/image'
+import Image from "next/image";
 import { Eye, Sparkles } from "lucide-react";
 import type { ShopifyCollection } from "@seo-facile-de-ouf/shared/src/shopify";
 
-interface CollectionRowProps {
-  collection: ShopifyCollection;
-}
-
-export function CollectionRow({ collection }: CollectionRowProps) {
-  return (
-    <TableRow>
-      <TableCell>
+export const columns: ColumnDef<ShopifyCollection>[] = [
+  {
+    accessorKey: "title",
+    header: "Collection",
+    cell: ({ row }) => {
+      const collection = row.original;
+      return (
         <div className="flex items-center gap-3">
           {collection.imageUrl ? (
             <div className="h-10 w-10 flex items-center justify-center rounded overflow-hidden bg-muted">
@@ -30,7 +29,7 @@ export function CollectionRow({ collection }: CollectionRowProps) {
               <span>
                 {collection.title
                   .split(" ")
-                  .map(word => word[0])
+                  .map((word) => word[0])
                   .join("")
                   .slice(0, 2)
                   .toUpperCase()}
@@ -45,9 +44,21 @@ export function CollectionRow({ collection }: CollectionRowProps) {
             </div>
           </div>
         </div>
-      </TableCell>
-      <TableCell className="text-center">{collection.productsCount}</TableCell>
-      <TableCell className="text-right">
+      );
+    },
+  },
+  {
+    accessorKey: "productsCount",
+    header: () => <div className="text-center">Nombre de produits</div>,
+    cell: ({ row }) => {
+      return <div className="text-center">{row.getValue("productsCount")}</div>;
+    },
+  },
+  {
+    id: "actions",
+    header: () => <div className="text-right">Action rapide</div>,
+    cell: () => {
+      return (
         <div className="flex items-center justify-end gap-2">
           <Button size="sm" variant="outline">
             <Sparkles className="mr-2 h-4 w-4" />
@@ -57,7 +68,7 @@ export function CollectionRow({ collection }: CollectionRowProps) {
             <Eye className="h-4 w-4" />
           </Button>
         </div>
-      </TableCell>
-    </TableRow>
-  );
-}
+      );
+    },
+  },
+];

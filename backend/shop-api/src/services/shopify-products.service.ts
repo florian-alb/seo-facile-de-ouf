@@ -186,7 +186,11 @@ export async function syncProducts(
   }
 
   // Get valid credentials
-  const credentials = await getStoreCredentials(storeId);
+  const credentials = await getStoreCredentials(storeId, userId);
+
+  if (!credentials) {
+    throw new Error("Store not found or access denied");
+  }
 
   // Fetch all products from Shopify
   const productNodes = await fetchAllProducts(

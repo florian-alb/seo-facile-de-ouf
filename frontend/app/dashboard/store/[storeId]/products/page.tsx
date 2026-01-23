@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 import { useShopifyProducts } from "@/hooks/use-shopify-products";
+import { useShopifyCollections } from "@/hooks/use-shopify-collections";
 import { ProductsFilters } from "@/components/products/products-filters";
 import { ProductsTable } from "@/components/products/products-table";
 import { SyncButton } from "@/components/collections/sync-button";
@@ -16,29 +17,32 @@ export default function ProductsPage() {
 
   const {
     products,
-    filters,
+    //filters,
     isLoading,
     isSyncing,
     error,
     fetchProducts,
     syncProducts,
-    updateFilters,
-    clearFilters,
+    //updateFilters,
+    //clearFilters,
   } = useShopifyProducts(storeId);
+
+  const { collections, fetchCollections } = useShopifyCollections(storeId);
 
   // Initial fetch on mount
   useEffect(() => {
     fetchProducts();
+    fetchCollections();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId]);
 
   // Refetch when filters change (with debounce handled in the component)
-  useEffect(() => {
-    if (filters.collectionId !== undefined || filters.status !== undefined) {
-      fetchProducts(filters);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.collectionId, filters.status, storeId]);
+  // useEffect(() => {
+  //   if (filters.collectionId !== undefined || filters.status !== undefined) {
+  //     fetchProducts(filters);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [filters.collectionId, filters.status, storeId]);
 
   const handleSync = async () => {
     try {
@@ -63,13 +67,13 @@ export default function ProductsPage() {
       </div>
 
       {/* Filters */}
-      <ProductsFilters
+      {/* <ProductsFilters
         storeId={storeId}
         filters={filters}
         onFilterChange={updateFilters}
         onClearFilters={clearFilters}
         onSearch={(search) => fetchProducts({ ...filters, search })}
-      />
+      /> */}
 
       {/* Error State */}
       {error && (
@@ -88,7 +92,9 @@ export default function ProductsPage() {
       )}
 
       {/* Products Table */}
-      {!isLoading && <ProductsTable products={products} storeId={storeId} />}
+      {!isLoading && (
+        <ProductsTable products={products} collections={collections} />
+      )}
     </div>
   );
 }
