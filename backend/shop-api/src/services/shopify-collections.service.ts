@@ -12,40 +12,38 @@ async function fetchCollectionsFromShopify(
   accessToken: string,
   after: string | null = null
 ): Promise<ShopifyGraphQLCollectionsResponse> {
+
   const query = `
-    query GetCollections($first: Int!, $after: String) {
-      collections(first: $first, after: $after) {
-        edges {
-          node {
-            id
-            legacyResourceId
-            title
-            handle
-            description
-            descriptionHtml
-            image {
-              url
-              altText
-            }
-            productsCount {
-              count
-            }
-            sortOrder
-            ruleSet {
-              appliedDisjunctively
-            }
-            publishedOnCurrentPublication
-            updatedAt
+  query GetCollections($first: Int!, $after: String) {
+    collections(first: $first, after: $after) {
+      edges {
+        node {
+          id
+          title
+          handle
+          descriptionHtml
+          image {
+            url
+            altText
           }
-          cursor
+          seo {
+            description
+            title
+          }
+          productsCount {
+            count
+          }
+          updatedAt
         }
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
       }
     }
-  `;
+  }
+`;
 
   const variables = {
     first: 250,
@@ -55,7 +53,6 @@ async function fetchCollectionsFromShopify(
   const data = await shopifyAdminGraphQL<
     ShopifyGraphQLCollectionsResponse["data"]
   >(shopifyDomain, accessToken, query, variables);
-
   return { data };
 }
 
@@ -94,18 +91,15 @@ function transformCollectionNode(
 ) {
   return {
     shopifyGid: node.id,
-    legacyResourceId: node.legacyResourceId,
     storeId,
     title: node.title,
     handle: node.handle,
-    productsCount: node.productsCount.count,
-    description: node.description || null,
     descriptionHtml: node.descriptionHtml || null,
     imageUrl: node.image?.url || null,
     imageAlt: node.image?.altText || null,
-    sortOrder: node.sortOrder || null,
-    publishedOnCurrentPublication: node.publishedOnCurrentPublication,
-    isSmartCollection: !!node.ruleSet,
+    seoDescription: node.seo?.description || null,
+    seoTitle: node.seo?.title || null,
+    productsCount: node.productsCount.count,
     shopifyUpdatedAt: new Date(node.updatedAt),
   };
 }
@@ -138,15 +132,12 @@ export async function syncCollections(
       update: {
         title: collectionData.title,
         handle: collectionData.handle,
-        productsCount: collectionData.productsCount,
-        description: collectionData.description,
         descriptionHtml: collectionData.descriptionHtml,
         imageUrl: collectionData.imageUrl,
         imageAlt: collectionData.imageAlt,
-        sortOrder: collectionData.sortOrder,
-        publishedOnCurrentPublication:
-          collectionData.publishedOnCurrentPublication,
-        isSmartCollection: collectionData.isSmartCollection,
+        seoDescription: collectionData.seoDescription,
+        seoTitle: collectionData.seoTitle,
+        productsCount: collectionData.productsCount,
         shopifyUpdatedAt: collectionData.shopifyUpdatedAt,
       },
       create: collectionData,

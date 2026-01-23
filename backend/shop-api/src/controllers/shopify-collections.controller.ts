@@ -29,11 +29,8 @@ export async function syncCollections(
     const shopId = Array.isArray(req.params.shopId)
       ? req.params.shopId[0]
       : req.params.shopId;
-
-    console.log("shopId", shopId)
+      
     const result = await collectionsService.syncCollections(shopId, userId);
-    console.log("result", result)
-
 
     res.json(result);
   } catch (err) {

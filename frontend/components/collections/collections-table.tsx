@@ -22,7 +22,7 @@ export function CollectionsTable({ collections }: CollectionsTableProps) {
           Aucune collection synchronisée
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Cliquez sur "Synchroniser les collections" pour commencer
+          Cliquez sur &quot;Synchroniser les collections&quot; pour commencer
         </p>
       </div>
     );
@@ -35,7 +35,6 @@ export function CollectionsTable({ collections }: CollectionsTableProps) {
           <TableRow>
             <TableHead>Collection</TableHead>
             <TableHead className="text-center">Nombre de produits</TableHead>
-            <TableHead>Statut</TableHead>
             <TableHead className="text-right">Action rapide</TableHead>
           </TableRow>
         </TableHeader>

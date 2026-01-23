@@ -175,7 +175,6 @@ export function StoreForm({
         <Button
           type="submit"
           disabled={isSubmitting || externalSubmitting}
-          className="bg-green-600 hover:bg-green-700 text-white"
         >
           {isSubmitting || externalSubmitting ? "Enregistrement..." : submitLabel}
         </Button>

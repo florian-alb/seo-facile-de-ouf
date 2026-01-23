@@ -7,18 +7,15 @@ export interface ShopifyCredentials {
 export interface ShopifyCollection {
   id: string;
   shopifyGid: string;
-  legacyResourceId: string;
   storeId: string;
   title: string;
   handle: string;
-  productsCount: number;
-  description?: string;
   descriptionHtml?: string;
   imageUrl?: string;
   imageAlt?: string;
-  sortOrder?: string;
-  isSmartCollection: boolean;
-  publishedOnCurrentPublication: boolean;
+  seoDescription?: string;
+  seoTitle?: string;
+  productsCount: number;
   shopifyUpdatedAt: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -33,23 +30,20 @@ export interface SyncCollectionsResponse {
 
 export interface ShopifyGraphQLCollectionNode {
   id: string;
-  legacyResourceId: string;
   title: string;
   handle: string;
-  description?: string;
   descriptionHtml?: string;
   image?: {
     url: string;
     altText?: string;
   };
+  seo?: {
+    description?: string;
+    title?: string;
+  };
   productsCount: {
     count: number;
   };
-  sortOrder?: string;
-  ruleSet?: {
-    appliedDisjunctively: boolean;
-  };
-  publishedOnCurrentPublication: boolean;
   updatedAt: string;
 }
 

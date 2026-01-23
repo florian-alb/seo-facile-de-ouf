@@ -14,7 +14,7 @@ export function useStores() {
       setIsLoading(true);
       setError(null);
       const data = await apiFetch<ShopifyStore[]>("/stores");
-      console.log(data)
+
       setStores(data);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -38,19 +38,13 @@ export function useStores() {
 
   const addStore = useCallback(
     async (formValues: ShopifyStoreFormValues): Promise<void> => {
-      // 1. Create store in DB with credentials
-      const newStore = await apiFetch<ShopifyStore>("/stores", {
+      // Create store in DB with credentials and exchange token automatically
+      await apiFetch<ShopifyStore>("/stores", {
         method: "POST",
         body: JSON.stringify(formValues),
       });
 
-      // 2. Connect store using client credentials grant (direct API call, no redirect)
-      await apiFetch("/shopify/auth/connect", {
-        method: "POST",
-        body: JSON.stringify({ storeId: newStore.id }),
-      });
-
-      // 3. Refresh stores list to show connected status
+      // Refresh stores list to show connected status
       await fetchStores();
     },
     [fetchStores]
@@ -103,16 +97,20 @@ export function useStores() {
 
   const retryConnection = useCallback(
     async (storeId: string): Promise<void> => {
-      // Retry connection using client credentials grant
-      await apiFetch("/shopify/auth/connect", {
-        method: "POST",
-        body: JSON.stringify({ storeId }),
+      // Retry connection by updating the store (triggers token re-exchange)
+      const store = stores.find((s) => s.id === storeId);
+      if (!store) throw new Error("Store not found");
+
+      // Trigger update to force token refresh
+      await apiFetch(`/stores/${storeId}`, {
+        method: "PUT",
+        body: JSON.stringify({}),
       });
 
       // Refresh stores list to show updated status
       await fetchStores();
     },
-    [fetchStores]
+    [stores, fetchStores]
   );
 
   const refreshStores = useCallback(() => {
