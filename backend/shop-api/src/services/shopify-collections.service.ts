@@ -1,46 +1,15 @@
 import { prisma } from "../lib/prisma";
-import { decrypt } from "../lib/encryption";
 import { shopifyAdminGraphQL } from "../lib/shopify";
+import { getStoreCredentials } from "./store.service";
 import type {
   ShopifyGraphQLCollectionsResponse,
   ShopifyGraphQLCollectionNode,
   SyncCollectionsResponse,
-  ShopifyCredentials,
 } from "@seo-facile-de-ouf/shared/src/shopify";
 
-async function getShopifyCredentials(
-  storeId: string,
-  userId: string
-): Promise<ShopifyCredentials | null> {
-  const store = await prisma.store.findFirst({
-    where: {
-      id: storeId,
-      userId,
-    },
-  });
-
-  if (!store) return null;
-
-  // If we have an access token, use it (OAuth flow)
-  if (store.encryptedAccessToken) {
-    const accessToken = decrypt(store.encryptedAccessToken);
-    return {
-      shopifyDomain: store.shopifyDomain,
-      accessToken,
-    };
-  }
-
-  // Fallback: use clientSecret as access token (for custom apps)
-  const accessToken = decrypt(store.encryptedClientSecret);
-
-  return {
-    shopifyDomain: store.shopifyDomain,
-    accessToken,
-  };
-}
-
 async function fetchCollectionsFromShopify(
-  credentials: ShopifyCredentials,
+  shopifyDomain: string,
+  accessToken: string,
   after: string | null = null
 ): Promise<ShopifyGraphQLCollectionsResponse> {
   const query = `
@@ -83,24 +52,27 @@ async function fetchCollectionsFromShopify(
     after,
   };
 
-  const data = await shopifyAdminGraphQL<ShopifyGraphQLCollectionsResponse["data"]>(
-    credentials,
-    query,
-    variables
-  );
+  const data = await shopifyAdminGraphQL<
+    ShopifyGraphQLCollectionsResponse["data"]
+  >(shopifyDomain, accessToken, query, variables);
 
   return { data };
 }
 
 async function fetchAllCollections(
-  credentials: ShopifyCredentials
+  shopifyDomain: string,
+  accessToken: string
 ): Promise<ShopifyGraphQLCollectionNode[]> {
   const allCollections: ShopifyGraphQLCollectionNode[] = [];
   let hasNextPage = true;
   let cursor: string | null = null;
 
   while (hasNextPage) {
-    const response = await fetchCollectionsFromShopify(credentials, cursor);
+    const response = await fetchCollectionsFromShopify(
+      shopifyDomain,
+      accessToken,
+      cursor
+    );
 
     if (response.data?.collections?.edges) {
       const nodes = response.data.collections.edges.map((edge) => edge.node);
@@ -142,13 +114,16 @@ export async function syncCollections(
   storeId: string,
   userId: string
 ): Promise<SyncCollectionsResponse> {
-  const credentials = await getShopifyCredentials(storeId, userId);
+  const credentials = await getStoreCredentials(storeId, userId);
 
   if (!credentials) {
     throw new Error("Store not found or access denied");
   }
 
-  const collections = await fetchAllCollections(credentials);
+  const collections = await fetchAllCollections(
+    credentials.shopifyDomain,
+    credentials.accessToken
+  );
 
   for (const node of collections) {
     const collectionData = transformCollectionNode(node, storeId);

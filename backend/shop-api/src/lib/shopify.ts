@@ -1,76 +1,77 @@
-import "@shopify/shopify-api/adapters/node";
-import { shopifyApi, ApiVersion, Session } from "@shopify/shopify-api";
-import type { ShopifyCredentials } from "@seo-facile-de-ouf/shared/src/shopify";
-
 /**
- * Create Shopify API client for a specific shop
- * We need to create a new client per shop because each has different credentials
+ * Shopify GraphQL Service
+ * Simple fetch-based implementation for calling Shopify Admin API
  */
-function createShopifyClient(credentials: ShopifyCredentials) {
-  return shopifyApi({
-    // For custom apps, these are dummy values - the real auth is in adminApiAccessToken
-    apiKey: "custom-app-key",
-    apiSecretKey: "custom-app-secret",
-    scopes: ["read_products", "read_collections"],
-    hostName: credentials.shopifyDomain.replace(/^https?:\/\//, ""), // Remove protocol if present
-    apiVersion: ApiVersion.January26,
-    isEmbeddedApp: false,
-    isCustomStoreApp: true,
-    adminApiAccessToken: credentials.accessToken, // This is the actual custom app access token
-  });
+
+interface GraphQLRequest {
+  query: string;
+  variables?: Record<string, any>;
+}
+
+interface GraphQLResponse<T> {
+  data?: T;
+  errors?: Array<{
+    message: string;
+    locations?: Array<{ line: number; column: number }>;
+    path?: string[];
+  }>;
 }
 
 /**
- * Utility function for Shopify Admin GraphQL API calls using official SDK
- * Handles authentication, error handling, and logging
+ * Execute a GraphQL query against Shopify Admin API
+ * @param shopifyDomain - The Shopify store domain (e.g., "myshop.myshopify.com")
+ * @param accessToken - Shopify access token
+ * @param query - GraphQL query string
+ * @param variables - Optional variables for the query
  */
 export async function shopifyAdminGraphQL<T>(
-  credentials: ShopifyCredentials,
+  shopifyDomain: string,
+  accessToken: string,
   query: string,
   variables?: Record<string, any>
 ): Promise<T> {
-  console.log("🔍 Shopify GraphQL Request (SDK):", {
-    domain: credentials.shopifyDomain,
-    tokenPrefix: credentials.accessToken.substring(0, 15) + "...",
-    queryPreview: query.substring(0, 100) + "...",
-    variables,
-  });
+  const url = `https://${shopifyDomain}/admin/api/2026-01/graphql.json`;
+
+  const body: GraphQLRequest = {
+    query,
+    ...(variables && { variables }),
+  };
 
   try {
-    // Create Shopify client for this shop
-    const shopify = createShopifyClient(credentials);
-
-    // For custom apps, use customAppSession instead of creating a Session manually
-    const session = shopify.session.customAppSession(credentials.shopifyDomain);
-
-    console.log("📝 Session created:", {
-      id: session.id,
-      shop: session.shop,
-      accessToken: session.accessToken?.substring(0, 15) + "...",
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Shopify-Access-Token": accessToken,
+      },
+      body: JSON.stringify(body),
     });
 
-    // Create GraphQL client
-    const client = new shopify.clients.Graphql({ session });
-
-    // Execute query
-    const response = await client.request(query, { variables });
-
-    console.log("✅ Shopify API Success (SDK)");
-    return response.data as T;
-  } catch (error: any) {
-    console.error("❌ Shopify SDK Error:", {
-      message: error.message,
-      response: error.response,
-      errors: error.response?.errors,
-    });
-
-    // Better error messages
-    if (error.response?.errors) {
+    if (!response.ok) {
+      const errorText = await response.text();
       throw new Error(
-        `Shopify GraphQL errors: ${JSON.stringify(error.response.errors)}`
+        `Shopify API request failed (${response.status}): ${errorText}`
       );
     }
 
+    const result: GraphQLResponse<T> = await response.json();
+
+    if (result.errors && result.errors.length > 0) {
+      throw new Error(
+        `GraphQL errors: ${result.errors.map((e) => e.message).join(", ")}`
+      );
+    }
+
+    if (!result.data) {
+      throw new Error("No data returned from GraphQL query");
+    }
+
+    return result.data;
+  } catch (error: any) {
+    console.error("❌ Shopify GraphQL Error:", {
+      domain: shopifyDomain,
+      error: error.message,
+    });
     throw error;
   }
 }

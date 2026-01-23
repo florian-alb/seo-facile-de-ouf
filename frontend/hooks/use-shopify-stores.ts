@@ -44,15 +44,16 @@ export function useStores() {
         body: JSON.stringify(formValues),
       });
 
-      // 2. Start OAuth flow with the new store
-      const response = await apiFetch<{ authUrl: string; state: string }>(
-        `/shopify/oauth/auth?storeId=${newStore.id}`
-      );
+      // 2. Connect store using client credentials grant (direct API call, no redirect)
+      await apiFetch("/shopify/auth/connect", {
+        method: "POST",
+        body: JSON.stringify({ storeId: newStore.id }),
+      });
 
-      // 3. Redirect to Shopify OAuth
-      window.location.href = response.authUrl;
+      // 3. Refresh stores list to show connected status
+      await fetchStores();
     },
-    []
+    [fetchStores]
   );
 
   const updateStore = useCallback(
@@ -100,6 +101,20 @@ export function useStores() {
     [stores]
   );
 
+  const retryConnection = useCallback(
+    async (storeId: string): Promise<void> => {
+      // Retry connection using client credentials grant
+      await apiFetch("/shopify/auth/connect", {
+        method: "POST",
+        body: JSON.stringify({ storeId }),
+      });
+
+      // Refresh stores list to show updated status
+      await fetchStores();
+    },
+    [fetchStores]
+  );
+
   const refreshStores = useCallback(() => {
     return fetchStores();
   }, [fetchStores]);
@@ -112,6 +127,7 @@ export function useStores() {
     updateStore,
     deleteStore,
     getStore,
+    retryConnection,
     refreshStores,
   };
 }

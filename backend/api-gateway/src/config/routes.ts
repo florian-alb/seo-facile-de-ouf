@@ -47,15 +47,15 @@ export const ROUTES: Route[] = [
       pathRewrite: (path: string) => `/stores${path}`,
     },
   },
-  // Shopify OAuth routes (no auth required for OAuth flow) → shop-api
+  // Shopify auth routes (client credentials grant) → shop-api
   {
-    url: "/shopify/oauth",
+    url: "/shopify/auth",
     auth: false,
     creditCheck: false,
     proxy: {
       target: process.env.SHOP_API_URL || "http://localhost:5003",
       changeOrigin: true,
-      pathRewrite: (path: string) => `/shopify/oauth${path}`,
+      pathRewrite: (path: string) => `/shopify/auth${path}`,
     },
   },
   // Shopify collections routes → shop-api
