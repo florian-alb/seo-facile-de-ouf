@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useShopifyCollections } from "@/hooks/use-shopify-collections";
-import { SyncButton } from "@/components/collections/sync-button";
+import { SyncButton } from "@/components/common/sync-button";
 import { CollectionsTable } from "@/components/collections/collections-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner"

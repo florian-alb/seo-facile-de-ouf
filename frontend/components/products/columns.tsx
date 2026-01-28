@@ -60,21 +60,8 @@ export function createColumns(
       },
     },
     {
-      accessorKey: "price",
-      header: () => <div className="text-center">Prix</div>,
-      cell: ({ row }) => {
-        const price = parseFloat(row.getValue("price"));
-        const formatted = new Intl.NumberFormat("fr-FR", {
-          style: "currency",
-          currency: "EUR",
-        }).format(price);
-
-        return <div className="text-center font-medium">{formatted}</div>;
-      },
-    },
-    {
       accessorKey: "collectionIds",
-      header: "Collection",
+      header: "Collections",
       cell: ({ row }) => {
         const product = row.original;
         const productCollections = product.collectionIds

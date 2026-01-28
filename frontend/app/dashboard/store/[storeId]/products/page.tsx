@@ -5,9 +5,8 @@ import { useEffect } from "react";
 import { toast } from "sonner";
 import { useShopifyProducts } from "@/hooks/use-shopify-products";
 import { useShopifyCollections } from "@/hooks/use-shopify-collections";
-import { ProductsFilters } from "@/components/products/products-filters";
 import { ProductsTable } from "@/components/products/products-table";
-import { SyncButton } from "@/components/collections/sync-button";
+import { SyncButton } from "@/components/common/sync-button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -52,6 +51,7 @@ export default function ProductsPage() {
       toast.error("Erreur lors de la synchronisation des produits");
     }
   };
+
 
   return (
     <div className="space-y-6">
