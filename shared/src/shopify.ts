@@ -71,13 +71,12 @@ export interface ShopifyProduct {
   handle: string;
   description?: string;
   descriptionHtml?: string;
-  status: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
+  status: "ACTIVE" | "DRAFT" | "ARCHIVED";
   vendor?: string;
   productType?: string;
   tags: string[];
   price: number;
   compareAtPrice?: number;
-  totalInventory: number;
   sku?: string;
   imageUrl?: string;
   imageAlt?: string;
@@ -92,7 +91,7 @@ export interface ShopifyProduct {
 export interface ProductFilters {
   collectionId?: string;
   search?: string;
-  status?: 'ACTIVE' | 'DRAFT' | 'ARCHIVED';
+  status?: "ACTIVE" | "DRAFT" | "ARCHIVED";
   minPrice?: number;
   maxPrice?: number;
 }
@@ -112,7 +111,6 @@ export interface ShopifyGraphQLProductNode {
   description?: string;
   descriptionHtml?: string;
   status: string;
-  totalInventory: number;
   vendor?: string;
   productType?: string;
   tags: string[];

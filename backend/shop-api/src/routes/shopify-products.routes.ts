@@ -1,10 +1,13 @@
 import { Router } from "express";
 import * as productsController from "../controllers/shopify-products.controller";
-import { requireAuth } from "../middlewares/auth.middleware";
+import { gatewayGuard, requireAuth } from "../middlewares/gateway-guard";
 
 const router = Router();
 
-// Apply auth middleware to all routes
+// Apply gateway guard to all routes (verify requests come from gateway)
+router.use(gatewayGuard);
+
+// Apply authentication requirement to all product routes
 router.use(requireAuth);
 
 router.get("/shops/:shopId/products", productsController.getProducts);

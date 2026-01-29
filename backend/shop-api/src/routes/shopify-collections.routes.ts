@@ -1,10 +1,13 @@
 import { Router } from "express";
 import * as collectionsController from "../controllers/shopify-collections.controller";
-import { requireAuth } from "../middlewares/auth.middleware";
+import { gatewayGuard, requireAuth } from "../middlewares/gateway-guard";
 
 const router = Router();
 
-// Apply auth middleware to all routes
+// Apply gateway guard to all routes (verify requests come from gateway)
+router.use(gatewayGuard);
+
+// Apply authentication requirement to all collection routes
 router.use(requireAuth);
 
 router.get("/shops/:shopId/collections", collectionsController.getCollections);

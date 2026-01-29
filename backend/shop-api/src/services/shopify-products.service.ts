@@ -27,7 +27,7 @@ async function fetchProductsFromShopify(
   shopifyDomain: string,
   accessToken: string,
   after: string | null = null,
-  query: string | null = null
+  query: string | null = null,
 ): Promise<ShopifyGraphQLProductsResponse> {
   const graphqlQuery = `
     query GetProducts($first: Int!, $after: String, $query: String) {
@@ -40,7 +40,6 @@ async function fetchProductsFromShopify(
             description
             descriptionHtml
             status
-            totalInventory
             vendor
             productType
             tags
@@ -96,7 +95,7 @@ async function fetchProductsFromShopify(
 async function fetchAllProducts(
   shopifyDomain: string,
   accessToken: string,
-  filters?: ProductFilters
+  filters?: ProductFilters,
 ): Promise<ShopifyGraphQLProductNode[]> {
   const allProducts: ShopifyGraphQLProductNode[] = [];
   let hasNextPage = true;
@@ -113,7 +112,7 @@ async function fetchAllProducts(
       shopifyDomain,
       accessToken,
       cursor,
-      shopifyQuery
+      shopifyQuery,
     );
 
     if (response.data?.products?.edges) {
@@ -132,7 +131,7 @@ async function fetchAllProducts(
 
 function transformProductNode(
   node: ShopifyGraphQLProductNode,
-  storeId: string
+  storeId: string,
 ) {
   // Extract first variant data
   const firstVariant = node.variants.edges[0]?.node;
@@ -157,7 +156,6 @@ function transformProductNode(
     tags: node.tags,
     price,
     compareAtPrice,
-    totalInventory: node.totalInventory,
     sku: firstVariant?.sku || null,
     imageUrl: node.featuredImage?.url || null,
     imageAlt: node.featuredImage?.altText || null,
@@ -170,7 +168,7 @@ function transformProductNode(
 
 export async function syncProducts(
   storeId: string,
-  userId: string
+  userId: string,
 ): Promise<SyncProductsResponse> {
   // Verify user owns the store
   const store = await prisma.store.findUnique({
@@ -195,12 +193,12 @@ export async function syncProducts(
   // Fetch all products from Shopify
   const productNodes = await fetchAllProducts(
     credentials.shopifyDomain,
-    credentials.accessToken
+    credentials.accessToken,
   );
 
   // Transform and upsert products
   const productsData = productNodes.map((node) =>
-    transformProductNode(node, storeId)
+    transformProductNode(node, storeId),
   );
 
   // Upsert products
@@ -234,7 +232,7 @@ export async function syncProducts(
 export async function getProducts(
   storeId: string,
   userId: string,
-  filters?: ProductFilters
+  filters?: ProductFilters,
 ) {
   // Verify user owns the store
   const store = await prisma.store.findUnique({
@@ -278,7 +276,7 @@ export async function getProducts(
 export async function getProductById(
   storeId: string,
   productId: string,
-  userId: string
+  userId: string,
 ) {
   // Verify user owns the store
   const store = await prisma.store.findUnique({
