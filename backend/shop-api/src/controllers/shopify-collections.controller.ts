@@ -12,8 +12,16 @@ export async function getCollections(
       ? req.params.shopId[0]
       : req.params.shopId;
 
-    const collections = await collectionsService.getCollections(shopId, userId);
-    res.json(collections);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    const result = await collectionsService.getCollections(
+      shopId,
+      userId,
+      page,
+      limit
+    );
+    res.json(result);
   } catch (err) {
     next(err);
   }

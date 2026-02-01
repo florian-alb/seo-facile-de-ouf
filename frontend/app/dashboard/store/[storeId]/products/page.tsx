@@ -16,32 +16,22 @@ export default function ProductsPage() {
 
   const {
     products,
-    //filters,
+    pagination,
     isLoading,
     isSyncing,
     error,
     fetchProducts,
+    setPage,
+    setPageSize,
     syncProducts,
-    //updateFilters,
-    //clearFilters,
   } = useShopifyProducts(storeId);
 
   const { collections, fetchCollections } = useShopifyCollections(storeId);
 
-  // Initial fetch on mount
   useEffect(() => {
     fetchProducts();
     fetchCollections();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId]);
-
-  // Refetch when filters change (with debounce handled in the component)
-  // useEffect(() => {
-  //   if (filters.collectionId !== undefined || filters.status !== undefined) {
-  //     fetchProducts(filters);
-  //   }
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [filters.collectionId, filters.status, storeId]);
 
   const handleSync = async () => {
     try {
@@ -60,20 +50,11 @@ export default function ProductsPage() {
         <div>
           <h1 className="text-2xl font-bold">Produits</h1>
           <p className="text-muted-foreground">
-            {products.length} produit{products.length > 1 ? "s" : ""}
+            {pagination.total} produit{pagination.total > 1 ? "s" : ""}
           </p>
         </div>
         <SyncButton onSync={handleSync} isSyncing={isSyncing} />
       </div>
-
-      {/* Filters */}
-      {/* <ProductsFilters
-        storeId={storeId}
-        filters={filters}
-        onFilterChange={updateFilters}
-        onClearFilters={clearFilters}
-        onSearch={(search) => fetchProducts({ ...filters, search })}
-      /> */}
 
       {/* Error State */}
       {error && (
@@ -93,7 +74,13 @@ export default function ProductsPage() {
 
       {/* Products Table */}
       {!isLoading && (
-        <ProductsTable products={products} collections={collections} />
+        <ProductsTable
+          products={products}
+          collections={collections}
+          pagination={pagination}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       )}
     </div>
   );

@@ -4,14 +4,11 @@ import * as storeService from "../services/store.service";
 export async function getAllStores(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
-  console.log("userId");
   try {
     const userId = req.userId!;
-    console.log("userId", userId);
     const stores = await storeService.getStoresByUserId(userId);
-    console.log("stores", stores);
     res.json(stores);
   } catch (err) {
     next(err);
@@ -21,7 +18,7 @@ export async function getAllStores(
 export async function getStoreById(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   try {
     const userId = req.userId!;
@@ -44,7 +41,7 @@ export async function getStoreById(
 export async function createStore(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   try {
     const userId = req.userId!;
@@ -83,7 +80,7 @@ export async function createStore(
 export async function updateStore(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   try {
     const userId = req.userId!;
@@ -115,7 +112,7 @@ export async function updateStore(
 export async function deleteStore(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   try {
     const userId = req.userId!;

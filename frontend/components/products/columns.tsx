@@ -5,15 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
 import { Eye, Sparkles } from "lucide-react";
-import type {
-  ShopifyProduct,
-  ShopifyCollection,
-} from "@seo-facile-de-ouf/shared/src/shopify";
+import type { ShopifyProduct } from "@seo-facile-de-ouf/shared/src/shopify-products";
+import type { ShopifyCollection } from "@seo-facile-de-ouf/shared/src/shopify-collections";
 
 export function createColumns(
   collections: ShopifyCollection[]
 ): ColumnDef<ShopifyProduct>[] {
-  // Create a map for quick lookup of collection titles by GID
   const collectionMap = new Map(
     collections.map((c) => [c.shopifyGid, c.title])
   );
@@ -44,7 +41,8 @@ export function createColumns(
                     .map((word) => word[0])
                     .join("")
                     .slice(0, 2)
-                    .toUpperCase()}
+                    .toUpperCase()
+                  }
                 </span>
               </div>
             )}

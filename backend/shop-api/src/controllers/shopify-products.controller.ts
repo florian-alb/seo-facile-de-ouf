@@ -1,17 +1,23 @@
 import { Request, Response } from "express";
 import * as productsService from "../services/shopify-products.service";
-import type { ProductFilters } from "@seo-facile-de-ouf/shared/src/shopify";
+import type { ProductFilters } from "@seo-facile-de-ouf/shared/src/shopify-products";
 
 export async function getProducts(req: Request, res: Response) {
   try {
-    const { shopId } = req.params;
+    const shopId = Array.isArray(req.params.shopId)
+      ? req.params.shopId[0]
+      : req.params.shopId;
     const userId = req.userId;
 
     if (!userId) {
       return res.status(401).json({ error: "Unauthorized" });
     }
 
-    // Parse query params
+    // Parse pagination params
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+
+    // Parse filter params
     const filters: ProductFilters = {};
     if (req.query.collectionId) {
       filters.collectionId = req.query.collectionId as string;
@@ -23,8 +29,14 @@ export async function getProducts(req: Request, res: Response) {
       filters.status = req.query.status as "ACTIVE" | "DRAFT" | "ARCHIVED";
     }
 
-    const products = await productsService.getProducts(shopId, userId, filters);
-    res.json(products);
+    const result = await productsService.getProducts(
+      shopId,
+      userId,
+      page,
+      limit,
+      filters,
+    );
+    res.json(result);
   } catch (error) {
     console.error("Error fetching products:", error);
 
@@ -43,7 +55,9 @@ export async function getProducts(req: Request, res: Response) {
 
 export async function syncProducts(req: Request, res: Response) {
   try {
-    const { shopId } = req.params;
+    const shopId = Array.isArray(req.params.shopId)
+      ? req.params.shopId[0]
+      : req.params.shopId;
     const userId = req.userId;
 
     if (!userId) {
@@ -70,7 +84,12 @@ export async function syncProducts(req: Request, res: Response) {
 
 export async function getProductById(req: Request, res: Response) {
   try {
-    const { shopId, productId } = req.params;
+    const shopId = Array.isArray(req.params.shopId)
+      ? req.params.shopId[0]
+      : req.params.shopId;
+    const productId = Array.isArray(req.params.productId)
+      ? req.params.productId[0]
+      : req.params.productId;
     const userId = req.userId;
 
     if (!userId) {

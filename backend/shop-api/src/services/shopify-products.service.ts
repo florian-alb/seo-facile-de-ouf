@@ -6,7 +6,9 @@ import type {
   ShopifyGraphQLProductNode,
   SyncProductsResponse,
   ProductFilters,
-} from "@seo-facile-de-ouf/shared/src/shopify";
+  ShopifyProduct,
+} from "@seo-facile-de-ouf/shared/src/shopify-products";
+import type { PaginatedResponse } from "@seo-facile-de-ouf/shared/src/api";
 
 interface ShopifyGraphQLProductsResponse {
   data: {
@@ -232,8 +234,10 @@ export async function syncProducts(
 export async function getProducts(
   storeId: string,
   userId: string,
+  page: number = 1,
+  limit: number = 10,
   filters?: ProductFilters,
-) {
+): Promise<PaginatedResponse<ShopifyProduct>> {
   // Verify user owns the store
   const store = await prisma.store.findUnique({
     where: { id: storeId },
@@ -265,12 +269,25 @@ export async function getProducts(
     ...(filters?.status && { status: filters.status }),
   };
 
-  const products = await prisma.shopifyProduct.findMany({
-    where,
-    orderBy: { createdAt: "desc" },
-  });
+  const [products, total] = await Promise.all([
+    prisma.shopifyProduct.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.shopifyProduct.count({ where }),
+  ]);
 
-  return products;
+  return {
+    data: products as ShopifyProduct[],
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 }
 
 export async function getProductById(

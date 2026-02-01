@@ -4,7 +4,7 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Eye, Sparkles } from "lucide-react";
-import type { ShopifyCollection } from "@seo-facile-de-ouf/shared/src/shopify";
+import type { ShopifyCollection } from "@seo-facile-de-ouf/shared/src/shopify-collections";
 
 export const columns: ColumnDef<ShopifyCollection>[] = [
   {

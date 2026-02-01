@@ -31,33 +31,51 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { Pagination as PaginationType } from "@seo-facile-de-ouf/shared/src/api";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   pageSizeOptions?: number[];
+  serverPagination?: PaginationType;
+  onPageChange?: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
 }
 
 export function DataTable<TData, TValue>({
   columns,
   data,
   pageSizeOptions = [10, 20, 30, 50],
+  serverPagination,
+  onPageChange,
+  onPageSizeChange,
 }: DataTableProps<TData, TValue>) {
+  const isServerSide = !!serverPagination;
+
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: isServerSide ? undefined : getPaginationRowModel(),
+    manualPagination: isServerSide,
+    pageCount: isServerSide ? serverPagination.totalPages : undefined,
     initialState: {
       pagination: {
-        pageSize: pageSizeOptions[0],
+        pageSize: serverPagination?.limit ?? pageSizeOptions[0],
+        pageIndex: serverPagination ? serverPagination.page - 1 : 0,
       },
     },
   });
 
-  const currentPage = table.getState().pagination.pageIndex;
-  const totalPages = table.getPageCount();
-  const pageSize = table.getState().pagination.pageSize;
+  const currentPage = isServerSide
+    ? serverPagination.page - 1
+    : table.getState().pagination.pageIndex;
+  const totalPages = isServerSide
+    ? serverPagination.totalPages
+    : table.getPageCount();
+  const pageSize = isServerSide
+    ? serverPagination.limit
+    : table.getState().pagination.pageSize;
 
   const getPageNumbers = () => {
     const pages: (number | "ellipsis")[] = [];
@@ -147,7 +165,14 @@ export function DataTable<TData, TValue>({
           <span className="text-sm text-muted-foreground">Lignes par page</span>
           <Select
             value={String(pageSize)}
-            onValueChange={(value) => table.setPageSize(Number(value))}
+            onValueChange={(value) => {
+              const newSize = Number(value);
+              if (isServerSide && onPageSizeChange) {
+                onPageSizeChange(newSize);
+              } else {
+                table.setPageSize(newSize);
+              }
+            }}
           >
             <SelectTrigger size="sm" className="w-[70px]">
               <SelectValue />
@@ -170,10 +195,14 @@ export function DataTable<TData, TValue>({
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    table.previousPage();
+                    if (isServerSide && onPageChange) {
+                      onPageChange(currentPage);
+                    } else {
+                      table.previousPage();
+                    }
                   }}
-                  aria-disabled={!table.getCanPreviousPage()}
-                  className={!table.getCanPreviousPage() ? "pointer-events-none opacity-50" : ""}
+                  aria-disabled={currentPage === 0}
+                  className={currentPage === 0 ? "pointer-events-none opacity-50" : ""}
                 />
               </PaginationItem>
 
@@ -189,7 +218,11 @@ export function DataTable<TData, TValue>({
                       isActive={page === currentPage}
                       onClick={(e) => {
                         e.preventDefault();
-                        table.setPageIndex(page);
+                        if (isServerSide && onPageChange) {
+                          onPageChange(page + 1);
+                        } else {
+                          table.setPageIndex(page);
+                        }
                       }}
                     >
                       {page + 1}
@@ -203,10 +236,14 @@ export function DataTable<TData, TValue>({
                   href="#"
                   onClick={(e) => {
                     e.preventDefault();
-                    table.nextPage();
+                    if (isServerSide && onPageChange) {
+                      onPageChange(currentPage + 2);
+                    } else {
+                      table.nextPage();
+                    }
                   }}
-                  aria-disabled={!table.getCanNextPage()}
-                  className={!table.getCanNextPage() ? "pointer-events-none opacity-50" : ""}
+                  aria-disabled={currentPage >= totalPages - 1}
+                  className={currentPage >= totalPages - 1 ? "pointer-events-none opacity-50" : ""}
                 />
               </PaginationItem>
             </PaginationContent>

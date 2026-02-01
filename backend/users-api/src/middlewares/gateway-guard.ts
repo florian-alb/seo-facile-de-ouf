@@ -15,8 +15,6 @@ export function gatewayGuard(
   res: Response,
   next: NextFunction,
 ) {
-  console.log("HEADERS RECEIVED:", req.headers);
-
   const gatewaySecret = req.headers["x-gateway-secret"];
   const expectedSecret = process.env.GATEWAY_SECRET;
 

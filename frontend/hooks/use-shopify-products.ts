@@ -5,36 +5,51 @@ import type {
   ShopifyProduct,
   SyncProductsResponse,
   ProductFilters,
-} from "@seo-facile-de-ouf/shared/src/shopify";
+} from "@seo-facile-de-ouf/shared/src/shopify-products";
+import type {
+  Pagination,
+  PaginatedResponse,
+} from "@seo-facile-de-ouf/shared/src/api";
 import { apiFetch, ApiError } from "@/lib/api";
 
 export function useShopifyProducts(storeId: string) {
   const [products, setProducts] = useState<ShopifyProduct[]>([]);
-  //const [filters, setFilters] = useState<ProductFilters>({});
+  const [pagination, setPagination] = useState<Pagination>({
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchProducts = useCallback(
-    async (newFilters?: ProductFilters) => {
+    async (page: number = 1, limit: number = 10, filters?: ProductFilters) => {
       setIsLoading(true);
       setError(null);
 
       try {
-        //const activeFilters = newFilters ?? filters;
-
-        // Build query string
         const params = new URLSearchParams();
-        // if (activeFilters.collectionId)
-        //   params.set("collectionId", activeFilters.collectionId);
-        // if (activeFilters.search) params.set("search", activeFilters.search);
-        // if (activeFilters.status) params.set("status", activeFilters.status);
+        params.set("page", String(page));
+        params.set("limit", String(limit));
 
-        const queryString = params.toString();
-        const url = `/shops/${storeId}/products${queryString ? `?${queryString}` : ""}`;
+        if (filters?.collectionId) {
+          params.set("collectionId", filters.collectionId);
+        }
+        if (filters?.search) {
+          params.set("search", filters.search);
+        }
+        if (filters?.status) {
+          params.set("status", filters.status);
+        }
 
-        const data = await apiFetch<ShopifyProduct[]>(url);
-        setProducts(data);
+        const data = await apiFetch<PaginatedResponse<ShopifyProduct>>(
+          `/shops/${storeId}/products?${params.toString()}`,
+        );
+
+        setProducts(data.data);
+        setPagination(data.pagination);
       } catch (err) {
         if (err instanceof ApiError) {
           setError(err.message);
@@ -46,7 +61,21 @@ export function useShopifyProducts(storeId: string) {
         setIsLoading(false);
       }
     },
-    [storeId]
+    [storeId],
+  );
+
+  const setPage = useCallback(
+    (page: number) => {
+      fetchProducts(page, pagination.limit);
+    },
+    [fetchProducts, pagination.limit],
+  );
+
+  const setPageSize = useCallback(
+    (limit: number) => {
+      fetchProducts(1, limit);
+    },
+    [fetchProducts],
   );
 
   const syncProducts = useCallback(async () => {
@@ -56,12 +85,10 @@ export function useShopifyProducts(storeId: string) {
     try {
       const response = await apiFetch<SyncProductsResponse>(
         `/shops/${storeId}/products/sync`,
-        { method: "POST" }
+        { method: "POST" },
       );
 
-      // Refetch products after sync
-      await fetchProducts();
-
+      await fetchProducts(1, pagination.limit);
       return response;
     } catch (err) {
       if (err instanceof ApiError) {
@@ -74,25 +101,17 @@ export function useShopifyProducts(storeId: string) {
     } finally {
       setIsSyncing(false);
     }
-  }, [storeId, fetchProducts]);
-
-  // const updateFilters = useCallback((newFilters: Partial<ProductFilters>) => {
-  //   setFilters((prev) => ({ ...prev, ...newFilters }));
-  // }, []);
-
-  // const clearFilters = useCallback(() => {
-  //   setFilters({});
-  // }, []);
+  }, [storeId, fetchProducts, pagination.limit]);
 
   return {
     products,
-    //filters,
+    pagination,
     isLoading,
     isSyncing,
     error,
     fetchProducts,
+    setPage,
+    setPageSize,
     syncProducts,
-    // updateFilters,
-    // clearFilters,
   };
 }

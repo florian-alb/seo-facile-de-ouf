@@ -5,14 +5,15 @@ import type {
   ShopifyGraphQLCollectionsResponse,
   ShopifyGraphQLCollectionNode,
   SyncCollectionsResponse,
-} from "@seo-facile-de-ouf/shared/src/shopify";
+  ShopifyCollection,
+} from "@seo-facile-de-ouf/shared/src/shopify-collections";
+import type { PaginatedResponse } from "@seo-facile-de-ouf/shared/src/api";
 
 async function fetchCollectionsFromShopify(
   shopifyDomain: string,
   accessToken: string,
-  after: string | null = null
+  after: string | null = null,
 ): Promise<ShopifyGraphQLCollectionsResponse> {
-
   const query = `
   query GetCollections($first: Int!, $after: String) {
     collections(first: $first, after: $after) {
@@ -58,7 +59,7 @@ async function fetchCollectionsFromShopify(
 
 async function fetchAllCollections(
   shopifyDomain: string,
-  accessToken: string
+  accessToken: string,
 ): Promise<ShopifyGraphQLCollectionNode[]> {
   const allCollections: ShopifyGraphQLCollectionNode[] = [];
   let hasNextPage = true;
@@ -68,7 +69,7 @@ async function fetchAllCollections(
     const response = await fetchCollectionsFromShopify(
       shopifyDomain,
       accessToken,
-      cursor
+      cursor,
     );
 
     if (response.data?.collections?.edges) {
@@ -87,7 +88,7 @@ async function fetchAllCollections(
 
 function transformCollectionNode(
   node: ShopifyGraphQLCollectionNode,
-  storeId: string
+  storeId: string,
 ) {
   return {
     shopifyGid: node.id,
@@ -106,7 +107,7 @@ function transformCollectionNode(
 
 export async function syncCollections(
   storeId: string,
-  userId: string
+  userId: string,
 ): Promise<SyncCollectionsResponse> {
   const credentials = await getStoreCredentials(storeId, userId);
 
@@ -116,7 +117,7 @@ export async function syncCollections(
 
   const collections = await fetchAllCollections(
     credentials.shopifyDomain,
-    credentials.accessToken
+    credentials.accessToken,
   );
 
   for (const node of collections) {
@@ -158,7 +159,12 @@ export async function syncCollections(
   };
 }
 
-export async function getCollections(storeId: string, userId: string) {
+export async function getCollections(
+  storeId: string,
+  userId: string,
+  page: number = 1,
+  limit: number = 10,
+): Promise<PaginatedResponse<ShopifyCollection>> {
   const store = await prisma.store.findFirst({
     where: {
       id: storeId,
@@ -170,18 +176,33 @@ export async function getCollections(storeId: string, userId: string) {
     throw new Error("Store not found or access denied");
   }
 
-  const collections = await prisma.shopifyCollection.findMany({
-    where: { storeId },
-    orderBy: { createdAt: "desc" },
-  });
+  const [collections, total] = await Promise.all([
+    prisma.shopifyCollection.findMany({
+      where: { storeId },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.shopifyCollection.count({
+      where: { storeId },
+    }),
+  ]);
 
-  return collections;
+  return {
+    data: collections,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 }
 
 export async function getCollectionById(
   storeId: string,
   collectionId: string,
-  userId: string
+  userId: string,
 ) {
   const store = await prisma.store.findFirst({
     where: {

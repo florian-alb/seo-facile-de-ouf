@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { useShopifyCollections } from "@/hooks/use-shopify-collections";
-import type { ProductFilters } from "@seo-facile-de-ouf/shared/src/shopify";
+import type { ProductFilters } from "@seo-facile-de-ouf/shared/src/shopify-products";
 
 interface ProductsFiltersProps {
   storeId: string;
