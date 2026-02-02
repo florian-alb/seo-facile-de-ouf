@@ -16,5 +16,13 @@ router.get(
   "/shops/:shopId/products/:productId",
   productsController.getProductById
 );
+router.patch(
+  "/shops/:shopId/products/:productId",
+  productsController.updateProduct
+);
+router.post(
+  "/shops/:shopId/products/:productId/publish",
+  productsController.publishProduct
+);
 
 export default router;

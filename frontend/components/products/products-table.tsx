@@ -10,6 +10,7 @@ interface ProductsTableProps {
   products: ShopifyProduct[];
   collections: ShopifyCollection[];
   pagination: Pagination;
+  storeId: string;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
 }
@@ -18,10 +19,11 @@ export function ProductsTable({
   products,
   collections,
   pagination,
+  storeId,
   onPageChange,
   onPageSizeChange,
 }: ProductsTableProps) {
-  const columns = createColumns(collections);
+  const columns = createColumns(collections, storeId);
   return (
     <DataTable
       columns={columns}

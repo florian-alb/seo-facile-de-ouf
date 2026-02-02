@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import DashboardShell from "./components/dashboard-shell";
+import DashboardShell from "../../components/dashboard/dashboard-shell";
 import { UserPublic, User } from "@seo-facile-de-ouf/shared/src/user";
 import { Session } from "@seo-facile-de-ouf/shared/src/session";
 

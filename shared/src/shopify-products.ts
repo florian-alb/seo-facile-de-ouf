@@ -77,3 +77,25 @@ export interface ShopifyGraphQLProductNode {
   updatedAt: string;
   publishedAt?: string;
 }
+
+export interface ProductUpdateInput {
+  title?: string;
+  descriptionHtml?: string;
+  handle?: string;
+  tags?: string[];
+  imageAlt?: string;
+  status?: ProductStatus;
+}
+
+export interface ProductUpdateResponse {
+  success: boolean;
+  product: ShopifyProduct;
+  message: string;
+}
+
+export interface ProductPublishResponse {
+  success: boolean;
+  product: ShopifyProduct;
+  shopifyUpdatedAt: Date;
+  message: string;
+}

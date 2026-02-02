@@ -4,12 +4,14 @@ import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Image from "next/image";
+import Link from "next/link";
 import { Eye, Sparkles } from "lucide-react";
 import type { ShopifyProduct } from "@seo-facile-de-ouf/shared/src/shopify-products";
 import type { ShopifyCollection } from "@seo-facile-de-ouf/shared/src/shopify-collections";
 
 export function createColumns(
-  collections: ShopifyCollection[]
+  collections: ShopifyCollection[],
+  storeId: string
 ): ColumnDef<ShopifyProduct>[] {
   const collectionMap = new Map(
     collections.map((c) => [c.shopifyGid, c.title])
@@ -86,15 +88,18 @@ export function createColumns(
     {
       id: "actions",
       header: () => <div className="text-right">Action rapide</div>,
-      cell: () => {
+      cell: ({ row }) => {
+        const product = row.original;
         return (
           <div className="flex items-center justify-end gap-2">
             <Button size="sm" variant="outline">
               <Sparkles className="mr-2 h-4 w-4" />
               Générer
             </Button>
-            <Button size="sm" variant="ghost">
-              <Eye className="h-4 w-4" />
+            <Button size="sm" variant="ghost" asChild>
+              <Link href={`/dashboard/store/${storeId}/products/${product.id}`}>
+                <Eye className="h-4 w-4" />
+              </Link>
             </Button>
           </div>
         );

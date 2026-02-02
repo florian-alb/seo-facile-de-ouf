@@ -7,6 +7,9 @@ import type {
   SyncProductsResponse,
   ProductFilters,
   ShopifyProduct,
+  ProductUpdateInput,
+  ProductUpdateResponse,
+  ProductPublishResponse,
 } from "@seo-facile-de-ouf/shared/src/shopify-products";
 import type { PaginatedResponse } from "@seo-facile-de-ouf/shared/src/api";
 
@@ -320,4 +323,186 @@ export async function getProductById(
   }
 
   return product;
+}
+
+export async function updateProduct(
+  storeId: string,
+  productId: string,
+  userId: string,
+  data: ProductUpdateInput,
+): Promise<ProductUpdateResponse> {
+  // Verify user owns the store
+  const store = await prisma.store.findUnique({
+    where: { id: storeId },
+  });
+
+  if (!store) {
+    throw new Error("Store not found");
+  }
+
+  if (store.userId !== userId) {
+    throw new Error("Unauthorized: User does not own this store");
+  }
+
+  // Verify product exists
+  const existingProduct = await prisma.shopifyProduct.findFirst({
+    where: {
+      id: productId,
+      storeId,
+    },
+  });
+
+  if (!existingProduct) {
+    throw new Error("Product not found");
+  }
+
+  // Update product in database
+  const updatedProduct = await prisma.shopifyProduct.update({
+    where: { id: productId },
+    data: {
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.descriptionHtml !== undefined && {
+        descriptionHtml: data.descriptionHtml,
+      }),
+      ...(data.handle !== undefined && { handle: data.handle }),
+      ...(data.tags !== undefined && { tags: data.tags }),
+      ...(data.imageAlt !== undefined && { imageAlt: data.imageAlt }),
+      ...(data.status !== undefined && { status: data.status }),
+    },
+  });
+
+  return {
+    success: true,
+    product: updatedProduct as ShopifyProduct,
+    message: "Product updated successfully",
+  };
+}
+
+interface ShopifyProductUpdateResponse {
+  productUpdate: {
+    product: {
+      id: string;
+      updatedAt: string;
+    } | null;
+    userErrors: Array<{
+      field: string[];
+      message: string;
+    }>;
+  };
+}
+
+export async function publishProductToShopify(
+  storeId: string,
+  productId: string,
+  userId: string,
+  data: ProductUpdateInput,
+): Promise<ProductPublishResponse> {
+  // Verify user owns the store
+  const store = await prisma.store.findUnique({
+    where: { id: storeId },
+  });
+
+  if (!store) {
+    throw new Error("Store not found");
+  }
+
+  if (store.userId !== userId) {
+    throw new Error("Unauthorized: User does not own this store");
+  }
+
+  // Verify product exists and get shopifyGid
+  const existingProduct = await prisma.shopifyProduct.findFirst({
+    where: {
+      id: productId,
+      storeId,
+    },
+  });
+
+  if (!existingProduct) {
+    throw new Error("Product not found");
+  }
+
+  // Get store credentials
+  const credentials = await getStoreCredentials(storeId, userId);
+
+  if (!credentials) {
+    throw new Error("Store credentials not found");
+  }
+
+  // Update product locally first
+  await prisma.shopifyProduct.update({
+    where: { id: productId },
+    data: {
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.descriptionHtml !== undefined && {
+        descriptionHtml: data.descriptionHtml,
+      }),
+      ...(data.handle !== undefined && { handle: data.handle }),
+      ...(data.tags !== undefined && { tags: data.tags }),
+      ...(data.imageAlt !== undefined && { imageAlt: data.imageAlt }),
+      ...(data.status !== undefined && { status: data.status }),
+    },
+  });
+
+  // Prepare Shopify mutation
+  const mutation = `
+    mutation productUpdate($input: ProductInput!) {
+      productUpdate(input: $input) {
+        product {
+          id
+          updatedAt
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    input: {
+      id: existingProduct.shopifyGid,
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.descriptionHtml !== undefined && {
+        descriptionHtml: data.descriptionHtml,
+      }),
+      ...(data.handle !== undefined && { handle: data.handle }),
+      ...(data.tags !== undefined && { tags: data.tags }),
+      ...(data.status !== undefined && { status: data.status }),
+    },
+  };
+
+  // Call Shopify API
+  const response = await shopifyAdminGraphQL<ShopifyProductUpdateResponse>(
+    credentials.shopifyDomain,
+    credentials.accessToken,
+    mutation,
+    variables,
+  );
+
+  if (response.productUpdate.userErrors.length > 0) {
+    const errorMessages = response.productUpdate.userErrors
+      .map((e) => e.message)
+      .join(", ");
+    throw new Error(`Shopify error: ${errorMessages}`);
+  }
+
+  if (!response.productUpdate.product) {
+    throw new Error("Failed to update product on Shopify");
+  }
+
+  // Update shopifyUpdatedAt in database
+  const shopifyUpdatedAt = new Date(response.productUpdate.product.updatedAt);
+  const finalProduct = await prisma.shopifyProduct.update({
+    where: { id: productId },
+    data: { shopifyUpdatedAt },
+  });
+
+  return {
+    success: true,
+    product: finalProduct as ShopifyProduct,
+    shopifyUpdatedAt,
+    message: "Product published to Shopify successfully",
+  };
 }

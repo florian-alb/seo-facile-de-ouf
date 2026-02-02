@@ -78,6 +78,7 @@ export default function ProductsPage() {
           products={products}
           collections={collections}
           pagination={pagination}
+          storeId={storeId}
           onPageChange={setPage}
           onPageSizeChange={setPageSize}
         />
