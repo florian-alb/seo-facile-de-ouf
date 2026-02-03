@@ -55,3 +55,24 @@ export interface ShopifyGraphQLCollectionsResponse {
     };
   };
 }
+
+export interface CollectionUpdateInput {
+  title?: string;
+  descriptionHtml?: string;
+  handle?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+}
+
+export interface CollectionUpdateResponse {
+  success: boolean;
+  collection: ShopifyCollection;
+  message: string;
+}
+
+export interface CollectionPublishResponse {
+  success: boolean;
+  collection: ShopifyCollection;
+  shopifyUpdatedAt: Date;
+  message: string;
+}

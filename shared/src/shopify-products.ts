@@ -6,7 +6,8 @@ export interface ShopifyProduct {
   storeId: string;
   title: string;
   handle: string;
-  description: string | null;
+  seoDescription: string | null;
+  seoTitle: string | null;
   descriptionHtml: string | null;
   status: ProductStatus;
   vendor: string | null;
@@ -44,12 +45,15 @@ export interface ShopifyGraphQLProductNode {
   id: string;
   title: string;
   handle: string;
-  description?: string;
   descriptionHtml?: string;
   status: string;
   vendor?: string;
   productType?: string;
   tags: string[];
+  seo: {
+    description?: string;
+    title?: string;
+  };
   collections: {
     edges: Array<{
       node: {

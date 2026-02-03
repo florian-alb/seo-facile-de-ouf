@@ -6,6 +6,9 @@ import type {
   ShopifyGraphQLCollectionNode,
   SyncCollectionsResponse,
   ShopifyCollection,
+  CollectionUpdateInput,
+  CollectionUpdateResponse,
+  CollectionPublishResponse,
 } from "@seo-facile-de-ouf/shared/src/shopify-collections";
 import type { PaginatedResponse } from "@seo-facile-de-ouf/shared/src/api";
 
@@ -223,4 +226,159 @@ export async function getCollectionById(
   });
 
   return collection;
+}
+
+export async function updateCollection(
+  storeId: string,
+  collectionId: string,
+  userId: string,
+  data: CollectionUpdateInput,
+): Promise<CollectionUpdateResponse> {
+  const store = await prisma.store.findFirst({
+    where: { id: storeId, userId },
+  });
+
+  if (!store) {
+    throw new Error("Store not found or access denied");
+  }
+
+  const existingCollection = await prisma.shopifyCollection.findFirst({
+    where: { id: collectionId, storeId },
+  });
+
+  if (!existingCollection) {
+    throw new Error("Collection not found");
+  }
+
+  const updatedCollection = await prisma.shopifyCollection.update({
+    where: { id: collectionId },
+    data: {
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.descriptionHtml !== undefined && { descriptionHtml: data.descriptionHtml }),
+      ...(data.handle !== undefined && { handle: data.handle }),
+      ...(data.seoTitle !== undefined && { seoTitle: data.seoTitle }),
+      ...(data.seoDescription !== undefined && { seoDescription: data.seoDescription }),
+    },
+  });
+
+  return {
+    success: true,
+    collection: updatedCollection as ShopifyCollection,
+    message: "Collection updated successfully",
+  };
+}
+
+interface ShopifyCollectionUpdateResponse {
+  collectionUpdate: {
+    collection: {
+      id: string;
+      updatedAt: string;
+    } | null;
+    userErrors: Array<{
+      field: string[];
+      message: string;
+    }>;
+  };
+}
+
+export async function publishCollectionToShopify(
+  storeId: string,
+  collectionId: string,
+  userId: string,
+  data: CollectionUpdateInput,
+): Promise<CollectionPublishResponse> {
+  const store = await prisma.store.findFirst({
+    where: { id: storeId, userId },
+  });
+
+  if (!store) {
+    throw new Error("Store not found or access denied");
+  }
+
+  const existingCollection = await prisma.shopifyCollection.findFirst({
+    where: { id: collectionId, storeId },
+  });
+
+  if (!existingCollection) {
+    throw new Error("Collection not found");
+  }
+
+  const credentials = await getStoreCredentials(storeId, userId);
+
+  if (!credentials) {
+    throw new Error("Store credentials not found");
+  }
+
+  // Update collection locally first
+  await prisma.shopifyCollection.update({
+    where: { id: collectionId },
+    data: {
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.descriptionHtml !== undefined && { descriptionHtml: data.descriptionHtml }),
+      ...(data.handle !== undefined && { handle: data.handle }),
+      ...(data.seoTitle !== undefined && { seoTitle: data.seoTitle }),
+      ...(data.seoDescription !== undefined && { seoDescription: data.seoDescription }),
+    },
+  });
+
+  const mutation = `
+    mutation collectionUpdate($input: CollectionInput!) {
+      collectionUpdate(input: $input) {
+        collection {
+          id
+          updatedAt
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    input: {
+      id: existingCollection.shopifyGid,
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.descriptionHtml !== undefined && { descriptionHtml: data.descriptionHtml }),
+      ...(data.handle !== undefined && { handle: data.handle }),
+      ...((data.seoTitle !== undefined || data.seoDescription !== undefined) && {
+        seo: {
+          ...(data.seoTitle !== undefined && { title: data.seoTitle }),
+          ...(data.seoDescription !== undefined && { description: data.seoDescription }),
+        },
+      }),
+    },
+  };
+
+  const response = await shopifyAdminGraphQL<ShopifyCollectionUpdateResponse>(
+    credentials.shopifyDomain,
+    credentials.accessToken,
+    mutation,
+    variables,
+  );
+
+  if (response.collectionUpdate.userErrors.length > 0) {
+    const errorMessages = response.collectionUpdate.userErrors
+      .map((e) => e.message)
+      .join(", ");
+    throw new Error(`Shopify error: ${errorMessages}`);
+  }
+
+  if (!response.collectionUpdate.collection) {
+    throw new Error("Failed to update collection on Shopify");
+  }
+
+  const shopifyUpdatedAt = new Date(response.collectionUpdate.collection.updatedAt);
+  const finalCollection = await prisma.shopifyCollection.update({
+    where: { id: collectionId },
+    data: { shopifyUpdatedAt },
+  });
+
+  return {
+    success: true,
+    collection: finalCollection as ShopifyCollection,
+    shopifyUpdatedAt,
+    message: "Collection published to Shopify successfully",
+  };
 }

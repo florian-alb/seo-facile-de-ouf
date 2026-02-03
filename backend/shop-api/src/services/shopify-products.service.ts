@@ -42,12 +42,15 @@ async function fetchProductsFromShopify(
             id
             title
             handle
-            description
             descriptionHtml
             status
             vendor
             productType
             tags
+            seo {
+              description
+              title
+            }
             collections(first: 10) {
               edges {
                 node {
@@ -153,8 +156,9 @@ function transformProductNode(
     storeId,
     title: node.title,
     handle: node.handle,
-    description: node.description || null,
     descriptionHtml: node.descriptionHtml || null,
+    seoDescription: node.seo.description || null,
+    seoTitle: node.seo.title || null,
     status: node.status,
     vendor: node.vendor || null,
     productType: node.productType || null,
@@ -265,7 +269,7 @@ export async function getProducts(
     ...(filters?.search && {
       OR: [
         { title: { contains: filters.search, mode: "insensitive" } },
-        { description: { contains: filters.search, mode: "insensitive" } },
+        { seoDescription: { contains: filters.search, mode: "insensitive" } },
         { sku: { contains: filters.search, mode: "insensitive" } },
       ],
     }),

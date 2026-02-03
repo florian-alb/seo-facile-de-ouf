@@ -6,10 +6,9 @@ import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 
-import { useShopifyProduct } from "@/hooks/use-shopify-product";
-import { useShopifyCollections } from "@/hooks/use-shopify-collections";
-import { ProductForm, type ProductFormRef } from "@/components/products/product-form";
-import { ProductInfoSidebar } from "@/components/products/product-info-sidebar";
+import { useShopifyCollection } from "@/hooks/use-shopify-collection";
+import { CollectionForm, type CollectionFormRef } from "@/components/collections/collection-form";
+import { CollectionInfoSidebar } from "@/components/collections/collection-info-sidebar";
 import { ActionCard } from "@/components/shared/action-card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,37 +23,34 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import type { ProductFormSchema } from "@/lib/validations/product";
+import type { CollectionFormSchema } from "@/lib/validations/collection";
 
-export default function ProductDetailPage() {
+export default function CollectionDetailPage() {
   const params = useParams();
   const router = useRouter();
   const storeId = params.storeId as string;
-  const productId = params.productId as string;
+  const collectionId = params.collectionId as string;
 
-  const formRef = useRef<ProductFormRef>(null);
+  const formRef = useRef<CollectionFormRef>(null);
   const [isDirty, setIsDirty] = useState(false);
   const [showExitDialog, setShowExitDialog] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<string | null>(null);
   const [shake, setShake] = useState(false);
 
   const {
-    product,
+    collection,
     isLoading,
     isSaving,
     isPublishing,
     error,
-    fetchProduct,
-    updateProduct,
-    publishProduct,
-  } = useShopifyProduct(storeId, productId);
-
-  const { collections, fetchCollections } = useShopifyCollections(storeId);
+    fetchCollection,
+    updateCollection,
+    publishCollection,
+  } = useShopifyCollection(storeId, collectionId);
 
   useEffect(() => {
-    fetchProduct();
-    fetchCollections(1, 100);
-  }, [storeId, productId]);
+    fetchCollection();
+  }, [storeId, collectionId]);
 
   // Handle browser back/forward and tab close
   useEffect(() => {
@@ -77,7 +73,7 @@ export default function ProductDetailPage() {
 
       if (link && isDirty) {
         const href = link.getAttribute("href");
-        if (href && href.startsWith("/") && !href.startsWith("/dashboard/store/" + storeId + "/products/" + productId)) {
+        if (href && href.startsWith("/") && !href.startsWith("/dashboard/store/" + storeId + "/collections/" + collectionId)) {
           e.preventDefault();
           triggerShake();
           setPendingNavigation(href);
@@ -88,7 +84,7 @@ export default function ProductDetailPage() {
 
     document.addEventListener("click", handleClick);
     return () => document.removeEventListener("click", handleClick);
-  }, [isDirty, storeId, productId]);
+  }, [isDirty, storeId, collectionId]);
 
   const triggerShake = useCallback(() => {
     setShake(true);
@@ -99,33 +95,31 @@ export default function ProductDetailPage() {
     setIsDirty(dirty);
   }, []);
 
-  const handleSave = async (data: ProductFormSchema) => {
+  const handleSave = async (data: CollectionFormSchema) => {
     try {
-      await updateProduct({
+      await updateCollection({
         title: data.title,
         descriptionHtml: data.descriptionHtml || undefined,
-        tags: data.tags,
-        imageAlt: data.imageAlt || undefined,
-        status: data.status,
+        seoTitle: data.seoTitle || undefined,
+        seoDescription: data.seoDescription || undefined,
       });
-      toast.success("Produit enregistré");
+      toast.success("Collection enregistrée");
     } catch {
-      toast.error("Erreur lors de l'enregistrement du produit");
+      toast.error("Erreur lors de l'enregistrement de la collection");
     }
   };
 
-  const handlePublish = async (data: ProductFormSchema) => {
+  const handlePublish = async (data: CollectionFormSchema) => {
     try {
-      await publishProduct({
+      await publishCollection({
         title: data.title,
         descriptionHtml: data.descriptionHtml || undefined,
-        tags: data.tags,
-        imageAlt: data.imageAlt || undefined,
-        status: data.status,
+        seoTitle: data.seoTitle || undefined,
+        seoDescription: data.seoDescription || undefined,
       });
-      toast.success("Produit publié sur Shopify");
+      toast.success("Collection publiée sur Shopify");
     } catch {
-      toast.error("Erreur lors de la publication du produit");
+      toast.error("Erreur lors de la publication de la collection");
     }
   };
 
@@ -149,7 +143,6 @@ export default function ProductDetailPage() {
   const handleConfirmNavigation = () => {
     setShowExitDialog(false);
     if (pendingNavigation) {
-      // Reset form to clear dirty state before navigation
       formRef.current?.reset();
       router.push(pendingNavigation);
     }
@@ -161,12 +154,11 @@ export default function ProductDetailPage() {
     triggerShake();
   };
 
-  // Handle back button click with dirty check
   const handleBackClick = (e: React.MouseEvent) => {
     if (isDirty) {
       e.preventDefault();
       triggerShake();
-      setPendingNavigation(`/dashboard/store/${storeId}/products`);
+      setPendingNavigation(`/dashboard/store/${storeId}/collections`);
       setShowExitDialog(true);
     }
   };
@@ -201,7 +193,7 @@ export default function ProductDetailPage() {
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href={`/dashboard/store/${storeId}/products`}>
+            <Link href={`/dashboard/store/${storeId}/collections`}>
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
@@ -210,26 +202,26 @@ export default function ProductDetailPage() {
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-        <Button onClick={() => fetchProduct()}>Réessayer</Button>
+        <Button onClick={() => fetchCollection()}>Réessayer</Button>
       </div>
     );
   }
 
-  // No product found
-  if (!product) {
+  // No collection found
+  if (!collection) {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>
-            <Link href={`/dashboard/store/${storeId}/products`}>
+            <Link href={`/dashboard/store/${storeId}/collections`}>
               <ArrowLeft className="h-4 w-4" />
             </Link>
           </Button>
-          <h1 className="text-2xl font-bold">Produit non trouvé</h1>
+          <h1 className="text-2xl font-bold">Collection non trouvée</h1>
         </div>
         <Alert>
           <AlertDescription>
-            Le produit demandé n&apos;existe pas ou a été supprimé.
+            La collection demandée n&apos;existe pas ou a été supprimée.
           </AlertDescription>
         </Alert>
       </div>
@@ -253,14 +245,14 @@ export default function ProductDetailPage() {
                   <ArrowLeft className="h-4 w-4" />
                 </span>
               ) : (
-                <Link href={`/dashboard/store/${storeId}/products`}>
+                <Link href={`/dashboard/store/${storeId}/collections`}>
                   <ArrowLeft className="h-4 w-4" />
                 </Link>
               )}
             </Button>
             <div>
-              <h1 className="text-2xl font-bold line-clamp-1">{product.title}</h1>
-              <p className="text-sm text-muted-foreground">{product.handle}</p>
+              <h1 className="text-2xl font-bold line-clamp-1">{collection.title}</h1>
+              <p className="text-sm text-muted-foreground">{collection.handle}</p>
             </div>
           </div>
         </div>
@@ -269,9 +261,9 @@ export default function ProductDetailPage() {
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main column - Form */}
           <div className="lg:col-span-2">
-            <ProductForm
+            <CollectionForm
               ref={formRef}
-              product={product}
+              collection={collection}
               onSave={handleSave}
               onPublish={handlePublish}
               onDirtyChange={handleDirtyChange}
@@ -294,9 +286,8 @@ export default function ProductDetailPage() {
               shake={shake}
             />
 
-            {/* Product Info */}
-
-            <ProductInfoSidebar product={product} collections={collections} />
+            {/* Collection Info */}
+            <CollectionInfoSidebar collection={collection} />
           </div>
         </div>
       </div>

@@ -60,8 +60,9 @@ model ShopifyProduct {
   storeId          String
   title            String
   handle           String
-  description      String?   @db.Text
   descriptionHtml  String?   @db.Text
+  seoDescription   String?   @db.Text
+  seoTitle         String?
   status           String // ACTIVE, DRAFT, ARCHIVED
   vendor           String?
   productType      String?

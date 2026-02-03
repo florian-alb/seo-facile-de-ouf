@@ -71,6 +71,7 @@ export default function CollectionsPage() {
         </div>
       ) : (
         <CollectionsTable
+          storeId={storeId}
           collections={collections}
           pagination={pagination}
           onPageChange={setPage}

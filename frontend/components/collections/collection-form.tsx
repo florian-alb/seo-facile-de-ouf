@@ -3,16 +3,9 @@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useImperativeHandle, forwardRef } from "react";
-import type { ShopifyProduct } from "@seo-facile-de-ouf/shared/src/shopify-products";
+import type { ShopifyCollection } from "@seo-facile-de-ouf/shared/src/shopify-collections";
 
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Card,
   CardContent,
@@ -22,7 +15,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import {
   Field,
-  FieldLabel,
   FieldError,
 } from "@/components/ui/field";
 import { RichTextEditor } from "@/components/ui/rich-text-editor";
@@ -30,34 +22,28 @@ import { GeneratableField } from "@/components/shared/generatable-field";
 import { toast } from "sonner";
 
 import {
-  productFormSchema,
-  type ProductFormSchema,
-} from "@/lib/validations/product";
+  collectionFormSchema,
+  type CollectionFormSchema,
+} from "@/lib/validations/collection";
 
-const STATUS_OPTIONS = [
-  { value: "ACTIVE", label: "Actif" },
-  { value: "DRAFT", label: "Brouillon" },
-  { value: "ARCHIVED", label: "Archivé" },
-] as const;
-
-export interface ProductFormRef {
+export interface CollectionFormRef {
   submit: (mode: "save" | "publish") => void;
   reset: () => void;
-  getValues: () => ProductFormSchema;
+  getValues: () => CollectionFormSchema;
 }
 
-interface ProductFormProps {
-  product: ShopifyProduct;
-  onSave: (data: ProductFormSchema) => Promise<void>;
-  onPublish: (data: ProductFormSchema) => Promise<void>;
+interface CollectionFormProps {
+  collection: ShopifyCollection;
+  onSave: (data: CollectionFormSchema) => Promise<void>;
+  onPublish: (data: CollectionFormSchema) => Promise<void>;
   onDirtyChange?: (isDirty: boolean) => void;
   isSaving: boolean;
   isPublishing: boolean;
 }
 
-export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
-  function ProductForm(
-    { product, onSave, onPublish, onDirtyChange, isSaving, isPublishing },
+export const CollectionForm = forwardRef<CollectionFormRef, CollectionFormProps>(
+  function CollectionForm(
+    { collection, onSave, onPublish, onDirtyChange, isSaving, isPublishing },
     ref
   ) {
     const {
@@ -68,17 +54,14 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
       reset,
       getValues,
       watch,
-    } = useForm<ProductFormSchema>({
-      resolver: zodResolver(productFormSchema),
+    } = useForm<CollectionFormSchema>({
+      resolver: zodResolver(collectionFormSchema),
       mode: "onBlur",
       defaultValues: {
-        title: product.title,
-        descriptionHtml: product.descriptionHtml || "",
-        seoTitle: product.seoTitle || "",
-        seoDescription: product.seoDescription || "",
-        tags: product.tags,
-        imageAlt: product.imageAlt || "",
-        status: product.status,
+        title: collection.title,
+        descriptionHtml: collection.descriptionHtml || "",
+        seoTitle: collection.seoTitle || "",
+        seoDescription: collection.seoDescription || "",
       },
     });
 
@@ -87,20 +70,17 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
       onDirtyChange?.(isDirty);
     }, [isDirty, onDirtyChange]);
 
-    // Reset form when product changes
+    // Reset form when collection changes
     useEffect(() => {
       reset({
-        title: product.title,
-        descriptionHtml: product.descriptionHtml || "",
-        seoTitle: product.seoTitle || "",
-        seoDescription: product.seoDescription || "",
-        tags: product.tags,
-        imageAlt: product.imageAlt || "",
-        status: product.status,
+        title: collection.title,
+        descriptionHtml: collection.descriptionHtml || "",
+        seoTitle: collection.seoTitle || "",
+        seoDescription: collection.seoDescription || "",
       });
-    }, [product, reset]);
+    }, [collection, reset]);
 
-    const handleSave = async (data: ProductFormSchema) => {
+    const handleSave = async (data: CollectionFormSchema) => {
       try {
         await onSave(data);
         reset(data);
@@ -109,7 +89,7 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
       }
     };
 
-    const handlePublish = async (data: ProductFormSchema) => {
+    const handlePublish = async (data: CollectionFormSchema) => {
       try {
         await onPublish(data);
         reset(data);
@@ -129,13 +109,10 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
       },
       reset: () => {
         reset({
-          title: product.title,
-          descriptionHtml: product.descriptionHtml || "",
-          seoTitle: product.seoTitle || "",
-          seoDescription: product.seoDescription || "",
-          tags: product.tags,
-          imageAlt: product.imageAlt || "",
-          status: product.status,
+          title: collection.title,
+            descriptionHtml: collection.descriptionHtml || "",
+          seoTitle: collection.seoTitle || "",
+          seoDescription: collection.seoDescription || "",
         });
         // Immediately notify parent that form is no longer dirty
         onDirtyChange?.(false);
@@ -157,13 +134,13 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
         {/* Title */}
         <Card size="sm">
           <CardHeader>
-            <CardTitle>Titre du produit</CardTitle>
+            <CardTitle>Titre de la collection</CardTitle>
           </CardHeader>
           <CardContent>
             <Field>
               <Input
                 id="title"
-                placeholder="Nom du produit"
+                placeholder="Nom de la collection"
                 disabled={isDisabled}
                 {...register("title")}
               />
@@ -190,7 +167,7 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
               <RichTextEditor
                 value={field.value || ""}
                 onChange={field.onChange}
-                placeholder="Décrivez votre produit..."
+                placeholder="Décrivez votre collection..."
                 disabled={isDisabled}
               />
             )}
@@ -228,43 +205,6 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
             {...register("seoDescription")}
           />
         </GeneratableField>
-
-        {/* Status */}
-        <Card size="sm">
-          <CardHeader>
-            <CardTitle>Statut</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Field>
-              <FieldLabel htmlFor="status">Statut du produit</FieldLabel>
-              <Controller
-                name="status"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={isDisabled}
-                  >
-                    <SelectTrigger id="status" className="w-full">
-                      <SelectValue placeholder="Sélectionnez un statut" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-              {errors.status?.message && (
-                <FieldError>{errors.status.message}</FieldError>
-              )}
-            </Field>
-          </CardContent>
-        </Card>
       </div>
     );
   }

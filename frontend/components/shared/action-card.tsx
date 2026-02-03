@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useCallback } from "react";
 import { Sparkles, Save, Upload, Undo2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -13,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
-interface ProductActionCardProps {
+interface ActionCardProps {
   isDirty: boolean;
   isSaving: boolean;
   isPublishing: boolean;
@@ -24,7 +23,7 @@ interface ProductActionCardProps {
   shake?: boolean;
 }
 
-export function ProductActionCard({
+export function ActionCard({
   isDirty,
   isSaving,
   isPublishing,
@@ -33,7 +32,7 @@ export function ProductActionCard({
   onCancel,
   onGenerate,
   shake = false,
-}: ProductActionCardProps) {
+}: ActionCardProps) {
   const isDisabled = isSaving || isPublishing;
 
   const handleGenerateClick = () => {

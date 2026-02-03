@@ -19,5 +19,13 @@ router.get(
   "/shops/:shopId/collections/:collectionId",
   collectionsController.getCollectionById
 );
+router.patch(
+  "/shops/:shopId/collections/:collectionId",
+  collectionsController.updateCollection
+);
+router.post(
+  "/shops/:shopId/collections/:collectionId/publish",
+  collectionsController.publishCollection
+);
 
 export default router;
