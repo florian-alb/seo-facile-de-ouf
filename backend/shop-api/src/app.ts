@@ -1,6 +1,7 @@
 import express, { Application } from "express";
 import cors from "cors";
 import storeRouter from "./routes/store.routes";
+import storeSettingsRouter from "./routes/store-settings.routes";
 import collectionsRouter from "./routes/shopify-collections.routes";
 import productsRouter from "./routes/shopify-products.routes";
 import { errorHandler } from "./middlewares/error.middleware";
@@ -22,6 +23,7 @@ const createApp = (): Application => {
 
   // Mount routes
   app.use("/stores", storeRouter);
+  app.use("/stores", storeSettingsRouter); // Handles /stores/:storeId/settings
   app.use("/", collectionsRouter); // Handles /shops/:shopId/collections
   app.use("/", productsRouter); // Handles /shops/:shopId/products
 

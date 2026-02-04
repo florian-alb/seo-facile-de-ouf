@@ -25,9 +25,28 @@ model Store {
   updatedAt      DateTime            @updatedAt
   collections    ShopifyCollection[]
   products       ShopifyProduct[]
+  settings       StoreSettings?
 
   @@index([userId])
   @@map("store")
+}
+
+// StoreSettings model - SEO generation parameters per store
+model StoreSettings {
+  id                  String   @id @default(uuid())
+  storeId             String   @unique
+  nicheKeyword        String   @default("")
+  nicheDescription    String   @default("") @db.Text
+  language            String   @default("fr")
+  collectionWordCount Int      @default(800)
+  productWordCount    Int      @default(400)
+  customerPersona     String   @default("") @db.Text
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  store               Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@map("store_settings")
 }
 
 // ShopifyCollection model - synced collections from Shopify

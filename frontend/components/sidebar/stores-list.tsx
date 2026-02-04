@@ -11,6 +11,9 @@ import {
   Package,
   Layers,
   Pencil,
+  Badge,
+  ShoppingCart,
+  Settings,
 } from "lucide-react";
 
 import {
@@ -80,6 +83,7 @@ export function StoresList({
       {stores.map((store) => {
         const collectionsUrl = `/dashboard/store/${store.id}/collections`;
         const productsUrl = `/dashboard/store/${store.id}/products`;
+        const settingsUrl = `/dashboard/store/${store.id}/settings`;
         const isStoreActive =
           pathname.startsWith(`/dashboard/store/${store.id}`);
 
@@ -92,7 +96,7 @@ export function StoresList({
             <SidebarMenuItem>
               <CollapsibleTrigger asChild>
                 <SidebarMenuButton tooltip={store.name}>
-                  <Package className="size-4" />
+                  <ShoppingCart className="size-4" />
                   <span className="flex-1 truncate">{store.name}</span>
                   <ChevronRight className="size-4 transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                 </SidebarMenuButton>
@@ -132,6 +136,8 @@ export function StoresList({
 
               <CollapsibleContent>
                 <SidebarMenuSub>
+
+                  {/* Collections */}
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton
                       asChild
@@ -143,6 +149,8 @@ export function StoresList({
                       </Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>
+
+                  {/* Products */}
                   <SidebarMenuSubItem>
                     <SidebarMenuSubButton
                       asChild
@@ -151,6 +159,19 @@ export function StoresList({
                       <Link href={productsUrl}>
                         <Package className="size-4" />
                         <span>Produits</span>
+                      </Link>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+
+                  {/* Settigns */}
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton
+                      asChild
+                      isActive={pathname === settingsUrl}
+                    >
+                      <Link href={settingsUrl}>
+                        <Settings className="size-4" />
+                        <span>Paramètres</span>
                       </Link>
                     </SidebarMenuSubButton>
                   </SidebarMenuSubItem>

@@ -27,9 +27,9 @@ export const LANGUAGE_OPTIONS: {
   value: ShopifyStoreLanguage;
   label: string;
 }[] = [
-  { value: "fr", label: "Français" },
-  { value: "en", label: "English" },
-  { value: "es", label: "Español" },
-  { value: "de", label: "Deutsch" },
-  { value: "it", label: "Italiano" },
+  { value: "fr", label: "🇫🇷 Français" },
+  { value: "en", label: "🇬🇧 English" },
+  { value: "es", label: "🇪🇸 Español" },
+  { value: "de", label: "🇩🇪 Deutsch" },
+  { value: "it", label: "🇮🇹 Italiano" },
 ];
