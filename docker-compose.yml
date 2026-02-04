@@ -19,6 +19,50 @@ services:
     depends_on:
       - api-gateway
 
+    # ═══════════════════════════════════════════════
+  # RabbitMQ - Message Broker
+  # ═══════════════════════════════════════════════
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"    # AMQP protocol
+      - "15672:15672"  # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+ 
+  # ═══════════════════════════════════════════════
+  # Worker - Traitement des jobs IA
+  # ═══════════════════════════════════════════════
+  worker:
+    build:
+      context: ./backend/worker
+      dockerfile: Dockerfile
+    container_name: worker
+        environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - MONGO_URI=mongodb://mongodb:27017/generations-db
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - app-network
+
   api-gateway:
     build:
       context: ./backend/api-gateway
@@ -179,3 +223,4 @@ networks:
 volumes:
   mongo-data:
   pgdata:
+  rabbitmq_data:
