@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { Skeleton } from "./components/skelton";
+import { Skeleton } from "@/components/dashboard/skelton";
 
 export default function Page() {
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,7 @@ export default function Page() {
     }
   }, [searchParams]);
 
-  if (loading) return <Skeleton/>
+  if (loading) return <Skeleton />
 
   return (
     <>hello</>

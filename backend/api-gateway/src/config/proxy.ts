@@ -1,29 +1,53 @@
-import { Application } from "express";
+import { Application, Request, Response, NextFunction } from "express";
 import { createProxyMiddleware } from "http-proxy-middleware";
 import { Route } from "../types";
+import {
+  validateSession,
+  requireAuthentication,
+  AuthenticatedRequest,
+} from "../middlewares/auth.middleware";
 
 export const setupProxies = (app: Application, routes: Route[]): void => {
   routes.forEach((route) => {
-    // Use the context overload so `pathRewrite` rules from `routes.ts`
-    // (e.g. { '^/users': '' }) are applied against the original request
-    // path. This prevents duplicating the prefix (which caused `/users`
-    // to become `/users/users` on the target and be interpreted as an id).
+    // Build proxy options with header injection
     const proxyOptions = {
       ...route.proxy,
-      // Preserve CORS headers
-      onProxyRes: (proxyRes: any, req: any, res: any) => {
-        // Allow CORS headers to pass through
-        if (req.headers.origin) {
-          res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
-          res.setHeader("Access-Control-Allow-Credentials", "true");
-        }
+      // Inject gateway secret and user info into proxied requests
+      on: {
+        proxyReq: (proxyReq: any, req: AuthenticatedRequest) => {
+          // Always inject the gateway secret (read at runtime, not import time)
+          const gatewaySecret = process.env.GATEWAY_SECRET;
+          if (gatewaySecret) {
+            proxyReq.setHeader("X-Gateway-Secret", gatewaySecret);
+          }
+
+          // Inject user info if authenticated
+          if (req.user) {
+            proxyReq.setHeader("X-User-ID", req.user.id);
+            proxyReq.setHeader("X-User-Email", req.user.email);
+            if (req.user.name) {
+              proxyReq.setHeader("X-User-Name", req.user.name);
+            }
+          }
+        },
+        proxyRes: (proxyRes: any, req: any, res: any) => {
+          // Preserve CORS headers
+          if (req.headers.origin) {
+            res.setHeader("Access-Control-Allow-Origin", req.headers.origin);
+            res.setHeader("Access-Control-Allow-Credentials", "true");
+          }
+        },
+        error: (err: Error, req: Request, res: Response) => {
+          console.error("[Gateway] Proxy error:", err);
+          res.status(502).json({ error: "Service unavailable" });
+        },
       },
     } as any;
 
     // Debug log: show the actual options passed to http-proxy-middleware
     console.log(
       `[api-gateway] setup proxy for ${route.url}:`,
-      JSON.stringify(proxyOptions)
+      JSON.stringify({ ...proxyOptions, on: "[handlers]" })
     );
 
     if (!proxyOptions || !proxyOptions.target) {
@@ -33,10 +57,20 @@ export const setupProxies = (app: Application, routes: Route[]): void => {
       );
     }
 
-    // http-proxy-middleware@3: mount by path and pass options separately.
-    // Note: Express will strip the mount path from `req.url`. For routes that
-    // need the prefix on the target service (e.g. /stores), handle it via
-    // route-specific `pathRewrite` (see routes.ts).
-    app.use(route.url, createProxyMiddleware(proxyOptions));
+    // Build middleware chain based on route.auth flag
+    const middlewares: any[] = [];
+
+    if (route.auth) {
+      // Routes requiring auth: validate session, then require authentication
+      middlewares.push(validateSession);
+      middlewares.push(requireAuthentication);
+    }
+    // Public routes: no session validation needed (e.g., /api/auth/* for Better Auth)
+
+    // Add the proxy middleware at the end
+    middlewares.push(createProxyMiddleware(proxyOptions));
+
+    // Mount all middlewares for this route
+    app.use(route.url, ...middlewares);
   });
 };

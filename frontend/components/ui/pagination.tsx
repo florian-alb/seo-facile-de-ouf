@@ -11,7 +11,7 @@ function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
       aria-label="pagination"
       data-slot="pagination"
       className={cn(
-        "mx-auto flex w-full justify-center",
+        "mx-auto flex w-full justify-end",
         className
       )}
       {...props}
@@ -76,9 +76,6 @@ function PaginationPrevious({
       {...props}
     >
       <ChevronLeftIcon data-icon="inline-start" />
-      <span className="hidden sm:block">
-        Previous
-      </span>
     </PaginationLink>
   )
 }
@@ -94,7 +91,6 @@ function PaginationNext({
       className={cn("pr-2!", className)}
       {...props}
     >
-      <span className="hidden sm:block">Next</span>
       <ChevronRightIcon data-icon="inline-end" />
     </PaginationLink>
   )

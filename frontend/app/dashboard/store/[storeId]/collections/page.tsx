@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useParams } from "next/navigation";
 import { useShopifyCollections } from "@/hooks/use-shopify-collections";
-import { SyncButton } from "@/components/collections/sync-button";
+import { SyncButton } from "@/components/common/sync-button";
 import { CollectionsTable } from "@/components/collections/collections-table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner"
@@ -14,10 +14,13 @@ export default function CollectionsPage() {
 
   const {
     collections,
+    pagination,
     isLoading,
     isSyncing,
     error,
     fetchCollections,
+    setPage,
+    setPageSize,
     syncCollections,
   } = useShopifyCollections(storeId);
 
@@ -28,12 +31,12 @@ export default function CollectionsPage() {
   const handleSync = async () => {
     try {
       const result = await syncCollections();
-      toast("Synchronisation réussie",{
+      toast("Synchronisation réussie", {
         description: result.message,
       });
     } catch (err) {
       console.error(err)
-      toast.error("Erreur de synchronisation",{
+      toast.error("Erreur de synchronisation", {
         description: "Impossible de synchroniser les collections",
       });
     }
@@ -67,13 +70,19 @@ export default function CollectionsPage() {
           <Skeleton className="h-12 w-full" />
         </div>
       ) : (
-        <CollectionsTable collections={collections} />
+        <CollectionsTable
+          storeId={storeId}
+          collections={collections}
+          pagination={pagination}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       )}
 
-      {collections.length > 0 && (
+      {pagination.total > 0 && (
         <div className="mt-4 text-sm text-muted-foreground">
-          {collections.length} collection{collections.length > 1 ? "s" : ""}{" "}
-          synchronisée{collections.length > 1 ? "s" : ""}
+          {pagination.total} collection{pagination.total > 1 ? "s" : ""}{" "}
+          synchronisée{pagination.total > 1 ? "s" : ""}
         </div>
       )}
     </div>

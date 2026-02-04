@@ -12,8 +12,8 @@ export default function DashboardShell({
   children,
   user,
 }: {
-    children: ReactNode;
-    user: UserPublic;
+  children: ReactNode;
+  user: UserPublic;
 }) {
   const router = useRouter();
 

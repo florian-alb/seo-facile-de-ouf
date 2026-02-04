@@ -3,6 +3,39 @@ import { fromNodeHeaders } from "better-auth/node";
 import { auth } from "../lib/auth";
 
 /**
+ * Validate session for API Gateway
+ * GET /validate-session
+ * Called by the gateway to validate Better Auth session and extract user info
+ */
+export async function validateSession(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+
+    if (session?.user) {
+      return res.json({
+        authenticated: true,
+        user: {
+          id: session.user.id,
+          email: session.user.email,
+          name: session.user.name,
+        },
+      });
+    }
+
+    return res.json({ authenticated: false, user: null });
+  } catch (error) {
+    console.error("[users-api] Session validation error:", error);
+    return res.json({ authenticated: false, user: null });
+  }
+}
+
+/**
  * Get current user session
  * GET /me
  */
@@ -81,7 +114,7 @@ export async function logout(req: Request, res: Response, next: NextFunction) {
 export async function register(
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   try {
     const { email, password, name } = req.body;

@@ -13,7 +13,7 @@ export function SyncButton({ onSync, isSyncing, disabled }: SyncButtonProps) {
   return (
     <Button onClick={onSync} disabled={isSyncing || disabled} size="sm">
       <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
-      {isSyncing ? "Synchronisation..." : "Synchroniser les collections"}
+      {isSyncing ? "Synchronisation..." : "Synchroniser"}
     </Button>
   );
 }

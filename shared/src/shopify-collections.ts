@@ -1,20 +1,14 @@
-// Types
-export interface ShopifyCredentials {
-  shopifyDomain: string;
-  accessToken: string;
-}
-
 export interface ShopifyCollection {
   id: string;
   shopifyGid: string;
   storeId: string;
   title: string;
   handle: string;
-  descriptionHtml?: string;
-  imageUrl?: string;
-  imageAlt?: string;
-  seoDescription?: string;
-  seoTitle?: string;
+  descriptionHtml: string | null;
+  imageUrl: string | null;
+  imageAlt: string | null;
+  seoDescription: string | null;
+  seoTitle: string | null;
   productsCount: number;
   shopifyUpdatedAt: Date;
   createdAt: Date;
@@ -60,4 +54,25 @@ export interface ShopifyGraphQLCollectionsResponse {
       };
     };
   };
+}
+
+export interface CollectionUpdateInput {
+  title?: string;
+  descriptionHtml?: string;
+  handle?: string;
+  seoTitle?: string;
+  seoDescription?: string;
+}
+
+export interface CollectionUpdateResponse {
+  success: boolean;
+  collection: ShopifyCollection;
+  message: string;
+}
+
+export interface CollectionPublishResponse {
+  success: boolean;
+  collection: ShopifyCollection;
+  shopifyUpdatedAt: Date;
+  message: string;
 }

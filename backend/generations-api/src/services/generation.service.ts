@@ -1,8 +1,9 @@
 import { Generation } from "../models/generation.model";
 
-export async function getAll() {
+export async function getAll(userId: string) {
   try {
-    const generations = await Generation.find();
+    // Filter generations by userId - users can only see their own generations
+    const generations = await Generation.find({ userId });
     return generations;
   } catch (error: unknown) {
     throw new Error(
@@ -13,9 +14,10 @@ export async function getAll() {
   }
 }
 
-export async function getById(id: string) {
+export async function getById(id: string, userId: string) {
   try {
-    const generation = await Generation.findById(id);
+    // Filter by both id and userId to ensure users can only access their own generations
+    const generation = await Generation.findOne({ _id: id, userId });
     return generation;
   } catch (error: unknown) {
     throw new Error(

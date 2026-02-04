@@ -1,49 +1,35 @@
 "use client";
 
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { CollectionRow } from "./collection-row";
-import type { ShopifyCollection } from "@seo-facile-de-ouf/shared/src/shopify";
+import { useMemo } from "react";
+import { DataTable } from "@/components/ui/data-table";
+import { createColumns } from "./columns";
+import type { ShopifyCollection } from "@seo-facile-de-ouf/shared/src/shopify-collections";
+import type { Pagination } from "@seo-facile-de-ouf/shared/src/api";
 
 interface CollectionsTableProps {
+  storeId: string;
   collections: ShopifyCollection[];
+  pagination: Pagination;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
 }
 
-export function CollectionsTable({ collections }: CollectionsTableProps) {
-  if (collections.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <p className="text-muted-foreground">
-          Aucune collection synchronisée
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Cliquez sur &quot;Synchroniser les collections&quot; pour commencer
-        </p>
-      </div>
-    );
-  }
+export function CollectionsTable({
+  storeId,
+  collections,
+  pagination,
+  onPageChange,
+  onPageSizeChange,
+}: CollectionsTableProps) {
+  const columns = useMemo(() => createColumns(storeId), [storeId]);
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Collection</TableHead>
-            <TableHead className="text-center">Nombre de produits</TableHead>
-            <TableHead className="text-right">Action rapide</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {collections.map((collection) => (
-            <CollectionRow key={collection.id} collection={collection} />
-          ))}
-        </TableBody>
-      </Table>
-    </div>
+    <DataTable
+      columns={columns}
+      data={collections}
+      serverPagination={pagination}
+      onPageChange={onPageChange}
+      onPageSizeChange={onPageSizeChange}
+    />
   );
 }

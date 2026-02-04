@@ -8,6 +8,7 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarGroupAction,
+  SidebarGroupContent,
 } from "@/components/ui/sidebar";
 import { AddStoreDialog } from "@/components/sidebar/add-store-dialog";
 import { EditStoreDialog } from "@/components/stores/edit-store-dialog";
@@ -67,25 +68,28 @@ export function StoresSection() {
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-      <SidebarGroupLabel>MES BOUTIQUES</SidebarGroupLabel>
-      <SidebarGroupAction asChild>
-        <button
-          onClick={() => setDialogOpen(true)}
-          className="text-blue-500 hover:text-blue-600"
-          aria-label="Ajouter une boutique"
-        >
-          <Plus />
-        </button>
+      <SidebarGroupLabel className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        Boutiques
+      </SidebarGroupLabel>
+      <SidebarGroupAction
+        onClick={() => setDialogOpen(true)}
+        className="hover:bg-sidebar-accent rounded-md"
+        title="Ajouter une boutique"
+      >
+        <Plus className="size-4" />
+        <span className="sr-only">Ajouter une boutique</span>
       </SidebarGroupAction>
 
-      {error && <p className="text-xs text-destructive px-2">{error}</p>}
+      <SidebarGroupContent>
+        {error && <p className="text-xs text-destructive px-2 py-1">{error}</p>}
 
-      <StoresList
-        stores={stores}
-        isLoading={isLoading}
-        onDelete={handleDeleteStore}
-        onEdit={handleEditStore}
-      />
+        <StoresList
+          stores={stores}
+          isLoading={isLoading}
+          onDelete={handleDeleteStore}
+          onEdit={handleEditStore}
+        />
+      </SidebarGroupContent>
 
       <AddStoreDialog
         open={dialogOpen}

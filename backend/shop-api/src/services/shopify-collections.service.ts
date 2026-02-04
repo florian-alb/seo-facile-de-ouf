@@ -5,14 +5,18 @@ import type {
   ShopifyGraphQLCollectionsResponse,
   ShopifyGraphQLCollectionNode,
   SyncCollectionsResponse,
-} from "@seo-facile-de-ouf/shared/src/shopify";
+  ShopifyCollection,
+  CollectionUpdateInput,
+  CollectionUpdateResponse,
+  CollectionPublishResponse,
+} from "@seo-facile-de-ouf/shared/src/shopify-collections";
+import type { PaginatedResponse } from "@seo-facile-de-ouf/shared/src/api";
 
 async function fetchCollectionsFromShopify(
   shopifyDomain: string,
   accessToken: string,
-  after: string | null = null
+  after: string | null = null,
 ): Promise<ShopifyGraphQLCollectionsResponse> {
-
   const query = `
   query GetCollections($first: Int!, $after: String) {
     collections(first: $first, after: $after) {
@@ -58,7 +62,7 @@ async function fetchCollectionsFromShopify(
 
 async function fetchAllCollections(
   shopifyDomain: string,
-  accessToken: string
+  accessToken: string,
 ): Promise<ShopifyGraphQLCollectionNode[]> {
   const allCollections: ShopifyGraphQLCollectionNode[] = [];
   let hasNextPage = true;
@@ -68,7 +72,7 @@ async function fetchAllCollections(
     const response = await fetchCollectionsFromShopify(
       shopifyDomain,
       accessToken,
-      cursor
+      cursor,
     );
 
     if (response.data?.collections?.edges) {
@@ -87,7 +91,7 @@ async function fetchAllCollections(
 
 function transformCollectionNode(
   node: ShopifyGraphQLCollectionNode,
-  storeId: string
+  storeId: string,
 ) {
   return {
     shopifyGid: node.id,
@@ -106,7 +110,7 @@ function transformCollectionNode(
 
 export async function syncCollections(
   storeId: string,
-  userId: string
+  userId: string,
 ): Promise<SyncCollectionsResponse> {
   const credentials = await getStoreCredentials(storeId, userId);
 
@@ -116,7 +120,7 @@ export async function syncCollections(
 
   const collections = await fetchAllCollections(
     credentials.shopifyDomain,
-    credentials.accessToken
+    credentials.accessToken,
   );
 
   for (const node of collections) {
@@ -158,7 +162,12 @@ export async function syncCollections(
   };
 }
 
-export async function getCollections(storeId: string, userId: string) {
+export async function getCollections(
+  storeId: string,
+  userId: string,
+  page: number = 1,
+  limit: number = 10,
+): Promise<PaginatedResponse<ShopifyCollection>> {
   const store = await prisma.store.findFirst({
     where: {
       id: storeId,
@@ -170,18 +179,33 @@ export async function getCollections(storeId: string, userId: string) {
     throw new Error("Store not found or access denied");
   }
 
-  const collections = await prisma.shopifyCollection.findMany({
-    where: { storeId },
-    orderBy: { createdAt: "desc" },
-  });
+  const [collections, total] = await Promise.all([
+    prisma.shopifyCollection.findMany({
+      where: { storeId },
+      orderBy: { createdAt: "desc" },
+      skip: (page - 1) * limit,
+      take: limit,
+    }),
+    prisma.shopifyCollection.count({
+      where: { storeId },
+    }),
+  ]);
 
-  return collections;
+  return {
+    data: collections,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 }
 
 export async function getCollectionById(
   storeId: string,
   collectionId: string,
-  userId: string
+  userId: string,
 ) {
   const store = await prisma.store.findFirst({
     where: {
@@ -202,4 +226,159 @@ export async function getCollectionById(
   });
 
   return collection;
+}
+
+export async function updateCollection(
+  storeId: string,
+  collectionId: string,
+  userId: string,
+  data: CollectionUpdateInput,
+): Promise<CollectionUpdateResponse> {
+  const store = await prisma.store.findFirst({
+    where: { id: storeId, userId },
+  });
+
+  if (!store) {
+    throw new Error("Store not found or access denied");
+  }
+
+  const existingCollection = await prisma.shopifyCollection.findFirst({
+    where: { id: collectionId, storeId },
+  });
+
+  if (!existingCollection) {
+    throw new Error("Collection not found");
+  }
+
+  const updatedCollection = await prisma.shopifyCollection.update({
+    where: { id: collectionId },
+    data: {
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.descriptionHtml !== undefined && { descriptionHtml: data.descriptionHtml }),
+      ...(data.handle !== undefined && { handle: data.handle }),
+      ...(data.seoTitle !== undefined && { seoTitle: data.seoTitle }),
+      ...(data.seoDescription !== undefined && { seoDescription: data.seoDescription }),
+    },
+  });
+
+  return {
+    success: true,
+    collection: updatedCollection as ShopifyCollection,
+    message: "Collection updated successfully",
+  };
+}
+
+interface ShopifyCollectionUpdateResponse {
+  collectionUpdate: {
+    collection: {
+      id: string;
+      updatedAt: string;
+    } | null;
+    userErrors: Array<{
+      field: string[];
+      message: string;
+    }>;
+  };
+}
+
+export async function publishCollectionToShopify(
+  storeId: string,
+  collectionId: string,
+  userId: string,
+  data: CollectionUpdateInput,
+): Promise<CollectionPublishResponse> {
+  const store = await prisma.store.findFirst({
+    where: { id: storeId, userId },
+  });
+
+  if (!store) {
+    throw new Error("Store not found or access denied");
+  }
+
+  const existingCollection = await prisma.shopifyCollection.findFirst({
+    where: { id: collectionId, storeId },
+  });
+
+  if (!existingCollection) {
+    throw new Error("Collection not found");
+  }
+
+  const credentials = await getStoreCredentials(storeId, userId);
+
+  if (!credentials) {
+    throw new Error("Store credentials not found");
+  }
+
+  // Update collection locally first
+  await prisma.shopifyCollection.update({
+    where: { id: collectionId },
+    data: {
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.descriptionHtml !== undefined && { descriptionHtml: data.descriptionHtml }),
+      ...(data.handle !== undefined && { handle: data.handle }),
+      ...(data.seoTitle !== undefined && { seoTitle: data.seoTitle }),
+      ...(data.seoDescription !== undefined && { seoDescription: data.seoDescription }),
+    },
+  });
+
+  const mutation = `
+    mutation collectionUpdate($input: CollectionInput!) {
+      collectionUpdate(input: $input) {
+        collection {
+          id
+          updatedAt
+        }
+        userErrors {
+          field
+          message
+        }
+      }
+    }
+  `;
+
+  const variables = {
+    input: {
+      id: existingCollection.shopifyGid,
+      ...(data.title !== undefined && { title: data.title }),
+      ...(data.descriptionHtml !== undefined && { descriptionHtml: data.descriptionHtml }),
+      ...(data.handle !== undefined && { handle: data.handle }),
+      ...((data.seoTitle !== undefined || data.seoDescription !== undefined) && {
+        seo: {
+          ...(data.seoTitle !== undefined && { title: data.seoTitle }),
+          ...(data.seoDescription !== undefined && { description: data.seoDescription }),
+        },
+      }),
+    },
+  };
+
+  const response = await shopifyAdminGraphQL<ShopifyCollectionUpdateResponse>(
+    credentials.shopifyDomain,
+    credentials.accessToken,
+    mutation,
+    variables,
+  );
+
+  if (response.collectionUpdate.userErrors.length > 0) {
+    const errorMessages = response.collectionUpdate.userErrors
+      .map((e) => e.message)
+      .join(", ");
+    throw new Error(`Shopify error: ${errorMessages}`);
+  }
+
+  if (!response.collectionUpdate.collection) {
+    throw new Error("Failed to update collection on Shopify");
+  }
+
+  const shopifyUpdatedAt = new Date(response.collectionUpdate.collection.updatedAt);
+  const finalCollection = await prisma.shopifyCollection.update({
+    where: { id: collectionId },
+    data: { shopifyUpdatedAt },
+  });
+
+  return {
+    success: true,
+    collection: finalCollection as ShopifyCollection,
+    shopifyUpdatedAt,
+    message: "Collection published to Shopify successfully",
+  };
 }

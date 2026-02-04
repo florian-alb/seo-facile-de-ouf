@@ -4,6 +4,7 @@ export interface IGeneration extends Document {
   productId: string;
   generationId: string;
   generation: string;
+  userId?: string; // Optional for backward compatibility
 }
 
 export interface IError {
