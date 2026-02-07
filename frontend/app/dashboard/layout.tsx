@@ -7,7 +7,7 @@ import { Session } from "@seo-facile-de-ouf/shared/src/session";
 
 
 async function getSessionFromAuthServer(): Promise<{ session?: Session, user?: User } | null> {
-  const API_URL = process.env.API_URL ?? "http://localhost:4000";
+  const API_URL = process.env.INTERNAL_API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
   const cookie = (await headers()).get("cookie") ?? "";
 

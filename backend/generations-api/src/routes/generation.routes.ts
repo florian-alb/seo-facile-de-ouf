@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import * as generationsController from "../controllers/generations.controller";
 import { Generation } from "@app/models/generation.model";
 import { publishJob } from "@app/lib/rabbitmq";
-import { gatewayGuard, requireAuth } from "../middlewares/gateway-guard";
+import { gatewayGuard, requireAuth, type GatewayAuthenticatedRequest } from "../middlewares/gateway-guard";
 
 const router = Router();
 
@@ -19,14 +19,15 @@ router.get("/:id", generationsController.getGenerationById);
 // ═══════════════════════════════════════════════════════════
 // POST /generate - Créer un job de génération
 // ═══════════════════════════════════════════════════════════
-router.post("/generate", async (req: Request, res: Response) => {
+router.post("/generate", async (req: GatewayAuthenticatedRequest, res: Response) => {
   try {
-    const { productId, productName, keywords, userId, shopId, type } = req.body;
+    const { productId, productName, keywords, shopId, fieldType, storeSettings, productContext } = req.body;
+    const userId = req.userId;
 
     // Validation
-    if (!productId || !productName || !userId || !shopId) {
+    if (!productId || !productName || !shopId) {
       return res.status(400).json({
-        error: "Missing required fields",
+        error: "Missing required fields: productId, productName, shopId",
       });
     }
 
@@ -37,13 +38,16 @@ router.post("/generate", async (req: Request, res: Response) => {
       keywords: keywords || [],
       userId,
       shopId,
+      fieldType: fieldType || "full_description",
+      storeSettings: storeSettings || undefined,
+      productContext: productContext || undefined,
       status: "pending",
     });
 
     // 2. Publier dans RabbitMQ
     await publishJob({
       jobId: generation._id.toString(),
-      type: type || "full_description",
+      type: fieldType || "full_description",
     });
 
     // 3. Répondre immédiatement avec le jobId
@@ -55,6 +59,83 @@ router.post("/generate", async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error creating generation:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// GET /job/:id/stream - SSE stream pour suivre un job en temps réel
+// ═══════════════════════════════════════════════════════════
+router.get("/job/:id/stream", async (req: Request, res: Response) => {
+  try {
+    const generation = await Generation.findById(req.params.id);
+
+    if (!generation) {
+      res.status(404).json({ error: "Job not found" });
+      return;
+    }
+
+    // Set SSE headers
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection": "keep-alive",
+    });
+
+    const sendEvent = (data: object) => {
+      res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    // Send initial state
+    sendEvent({
+      jobId: generation._id.toString(),
+      status: generation.status,
+      content: generation.content,
+      error: generation.error,
+    });
+
+    // If already terminal, close immediately
+    if (generation.status === "completed" || generation.status === "failed") {
+      res.end();
+      return;
+    }
+
+    // Open MongoDB Change Stream to watch this document
+    const changeStream = Generation.watch(
+      [{ $match: { "documentKey._id": generation._id } }],
+      { fullDocument: "updateLookup" },
+    );
+
+    changeStream.on("change", (change) => {
+      const doc = change.fullDocument;
+      if (!doc) return;
+
+      sendEvent({
+        jobId: doc._id.toString(),
+        status: doc.status,
+        content: doc.content,
+        error: doc.error,
+      });
+
+      // Close stream on terminal status
+      if (doc.status === "completed" || doc.status === "failed") {
+        changeStream.close();
+        res.end();
+      }
+    });
+
+    changeStream.on("error", (error) => {
+      console.error("Change stream error:", error);
+      changeStream.close();
+      res.end();
+    });
+
+    // Cleanup when client disconnects
+    req.on("close", () => {
+      changeStream.close();
+    });
+  } catch (error) {
+    console.error("SSE stream error:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

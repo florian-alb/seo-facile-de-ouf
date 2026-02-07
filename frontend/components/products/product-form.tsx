@@ -2,8 +2,10 @@
 
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useImperativeHandle, forwardRef } from "react";
+import { useEffect, useImperativeHandle, forwardRef, useCallback } from "react";
 import type { ShopifyProduct } from "@seo-facile-de-ouf/shared/src/shopify-products";
+import { useStoreSettings } from "@/hooks/use-store-settings";
+import { useFieldGeneration } from "@/hooks/use-generation";
 
 import { Input } from "@/components/ui/input";
 import {
@@ -48,6 +50,7 @@ export interface ProductFormRef {
 
 interface ProductFormProps {
   product: ShopifyProduct;
+  storeId: string;
   onSave: (data: ProductFormSchema) => Promise<void>;
   onPublish: (data: ProductFormSchema) => Promise<void>;
   onDirtyChange?: (isDirty: boolean) => void;
@@ -57,7 +60,7 @@ interface ProductFormProps {
 
 export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
   function ProductForm(
-    { product, onSave, onPublish, onDirtyChange, isSaving, isPublishing },
+    { product, storeId, onSave, onPublish, onDirtyChange, isSaving, isPublishing },
     ref
   ) {
     const {
@@ -68,6 +71,7 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
       reset,
       getValues,
       watch,
+      setValue,
     } = useForm<ProductFormSchema>({
       resolver: zodResolver(productFormSchema),
       mode: "onBlur",
@@ -81,6 +85,28 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
         status: product.status,
       },
     });
+
+    // Store settings for AI generation
+    const { settings, fetchSettings } = useStoreSettings(storeId);
+    const { generations, startGeneration, isGenerating } = useFieldGeneration();
+
+    useEffect(() => {
+      fetchSettings();
+    }, [fetchSettings]);
+
+    // Inject generated description into form when completed
+    useEffect(() => {
+      const descGen = generations.description;
+      if (descGen.status === "completed" && descGen.result) {
+        setValue("descriptionHtml", descGen.result, { shouldDirty: true });
+        toast.success("Description générée avec succès");
+      }
+      if (descGen.status === "failed" && descGen.error) {
+        toast.error("Échec de la génération", {
+          description: descGen.error,
+        });
+      }
+    }, [generations.description.status, generations.description.result, generations.description.error, setValue]);
 
     // Notify parent of dirty state changes
     useEffect(() => {
@@ -143,10 +169,44 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
       getValues,
     }));
 
-    const handleGenerateClick = () => {
+    const handleGenerateDescription = useCallback(() => {
+      if (!settings) {
+        toast.warning("Paramètres du magasin non configurés", {
+          description:
+            "Configurez vos paramètres SEO dans les réglages pour de meilleurs résultats.",
+        });
+      }
+
+      startGeneration({
+        productId: product.id,
+        productName: product.title,
+        shopId: storeId,
+        fieldType: "description",
+        keywords: product.tags || [],
+        storeSettings: settings
+          ? {
+              nicheKeyword: settings.nicheKeyword,
+              nicheDescription: settings.nicheDescription,
+              language: settings.language,
+              productWordCount: settings.productWordCount,
+              customerPersona: settings.customerPersona,
+            }
+          : null,
+        productContext: {
+          title: product.title,
+          tags: product.tags || [],
+          vendor: product.vendor || null,
+          productType: product.productType || null,
+          price: Number(product.price),
+          currentDescription: getValues("descriptionHtml") || null,
+        },
+      });
+    }, [product, storeId, settings, startGeneration, getValues]);
+
+    const handleGenerateComingSoon = () => {
       toast.info("Fonctionnalité à venir", {
         description:
-          "La génération IA sera disponible dans une prochaine version.",
+          "La génération IA de ce champ sera disponible dans une prochaine version.",
       });
     };
 
@@ -180,8 +240,9 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
           value={watch("descriptionHtml") || ""}
           error={errors.descriptionHtml?.message}
           disabled={isDisabled}
+          isGenerating={isGenerating("description")}
           showCounter={false}
-          onGenerate={handleGenerateClick}
+          onGenerate={handleGenerateDescription}
         >
           <Controller
             name="descriptionHtml"
@@ -203,7 +264,7 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
           value={watch("seoTitle") || ""}
           error={errors.seoTitle?.message}
           disabled={isDisabled}
-          onGenerate={handleGenerateClick}
+          onGenerate={handleGenerateComingSoon}
         >
           <Textarea
             id="seoTitle"
@@ -219,7 +280,7 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
           value={watch("seoDescription") || ""}
           error={errors.seoDescription?.message}
           disabled={isDisabled}
-          onGenerate={handleGenerateClick}
+          onGenerate={handleGenerateComingSoon}
         >
           <Textarea
             id="seoDescription"

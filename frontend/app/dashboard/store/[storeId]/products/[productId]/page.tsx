@@ -272,6 +272,7 @@ export default function ProductDetailPage() {
             <ProductForm
               ref={formRef}
               product={product}
+              storeId={storeId}
               onSave={handleSave}
               onPublish={handlePublish}
               onDirtyChange={handleDirtyChange}

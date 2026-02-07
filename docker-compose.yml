@@ -1,8 +1,11 @@
 services:
+  # ═══════════════════════════════════════════════
+  # Frontend
+  # ═══════════════════════════════════════════════
   frontend:
     build:
       context: .
-      dockerfile: frontend/Dockerfile.dev
+      dockerfile: frontend/Dockerfile
     container_name: frontend
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
@@ -11,23 +14,154 @@ services:
       - ./shared:/src/shared
       - /src/frontend/node_modules
       - /src/frontend/.next
+    env_file: ./frontend/.env.local
     environment:
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:4000}
+      - INTERNAL_API_URL=http://api-gateway:4000
     restart: unless-stopped
     networks:
       - app-network
     depends_on:
       - api-gateway
 
-    # ═══════════════════════════════════════════════
-  # RabbitMQ - Message Broker
+  # ═══════════════════════════════════════════════
+  # API Gateway
+  # ═══════════════════════════════════════════════
+  api-gateway:
+    build:
+      context: .
+      dockerfile: backend/api-gateway/Dockerfile
+    container_name: api-gateway
+    ports:
+      - "${API_GATEWAY_PORT:-4000}:4000"
+    volumes:
+      - ./backend/api-gateway:/src/backend/api-gateway
+      - /src/backend/api-gateway/node_modules
+    env_file: ./backend/api-gateway/.env
+    environment:
+      - PORT=4000
+      - USERS_API_URL=http://users-api:5001
+      - SHOP_API_URL=http://shop-api:5003
+      - GENERATIONS_API_URL=http://generations-api:5002
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      - generations-api
+      - users-api
+      - shop-api
+
+  # ═══════════════════════════════════════════════
+  # Users API
+  # ═══════════════════════════════════════════════
+  users-api:
+    build:
+      context: .
+      dockerfile: backend/users-api/Dockerfile
+    container_name: users-api
+    ports:
+      - "${USERS_API_PORT:-5001}:5001"
+    volumes:
+      - ./backend/users-api:/src/backend/users-api
+      - ./shared:/src/shared
+      - /src/backend/users-api/node_modules
+    env_file: ./backend/users-api/.env
+    environment:
+      - PORT=5001
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/users_db
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════
+  # Shop API
+  # ═══════════════════════════════════════════════
+  shop-api:
+    build:
+      context: .
+      dockerfile: backend/shop-api/Dockerfile
+    container_name: shop-api
+    ports:
+      - "${SHOP_API_PORT:-5003}:5003"
+    volumes:
+      - ./backend/shop-api:/src/backend/shop-api
+      - ./shared:/src/shared
+      - /src/backend/shop-api/node_modules
+    env_file: ./backend/shop-api/.env
+    environment:
+      - PORT=5003
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/seo_facile_shops
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════
+  # Generations API
+  # ═══════════════════════════════════════════════
+  generations-api:
+    build:
+      context: .
+      dockerfile: backend/generations-api/Dockerfile
+    container_name: generations-api
+    ports:
+      - "${GENERATIONS_API_PORT:-5002}:5002"
+    volumes:
+      - ./backend/generations-api:/src/backend/generations-api
+      - ./shared:/src/shared
+      - /src/backend/generations-api/node_modules
+    env_file: ./backend/generations-api/.env
+    environment:
+      - PORT=5002
+      - MONGO_URI=mongodb://mongo:27017/generations-db?replicaSet=rs0
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      mongo:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  # ═══════════════════════════════════════════════
+  # Worker
+  # ═══════════════════════════════════════════════
+  worker:
+    build:
+      context: .
+      dockerfile: backend/worker/Dockerfile
+    container_name: worker
+    volumes:
+      - ./backend/worker:/src/backend/worker
+      - /src/backend/worker/node_modules
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
+      - MONGO_URI=mongodb://mongo:27017/generations-db?replicaSet=rs0
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - app-network
+
+  # ═══════════════════════════════════════════════
+  # RabbitMQ
   # ═══════════════════════════════════════════════
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
     ports:
-      - "5672:5672"    # AMQP protocol
-      - "15672:15672"  # Management UI
+      - "5672:5672"
+      - "15672:15672"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -40,130 +174,14 @@ services:
       retries: 5
     networks:
       - app-network
- 
+
   # ═══════════════════════════════════════════════
-  # Worker - Traitement des jobs IA
+  # MongoDB
   # ═══════════════════════════════════════════════
-  worker:
-    build:
-      context: ./backend/worker
-      dockerfile: Dockerfile
-    container_name: worker
-        environment:
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672
-      - MONGO_URI=mongodb://mongodb:27017/generations-db
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-    depends_on:
-      rabbitmq:
-        condition: service_healthy
-      mongodb:
-        condition: service_started
-    restart: unless-stopped
-    networks:
-      - app-network
-
-  api-gateway:
-    build:
-      context: ./backend/api-gateway
-      dockerfile: Dockerfile.dev
-    container_name: api-gateway
-    ports:
-      - "${API_GATEWAY_PORT:-4000}:4000"
-    volumes:
-      - ./backend/api-gateway:/src
-      - /src/node_modules
-    environment:
-      - PORT=4000
-      - GENERATIONS_API_URL=${GENERATIONS_API_URL}
-      - USERS_API_URL=${USERS_API_URL}
-      - SHOP_API_URL=${SHOP_API_URL}
-      - MONGO_EXPRESS_URL=${MONGO_EXPRESS_URL}
-    restart: unless-stopped
-    networks:
-      - app-network
-    depends_on:
-      - generations-api
-      - users-api
-      - shop-api
-
-  users-api:
-    build:
-      context: .
-      dockerfile: backend/users-api/Dockerfile.dev
-    container_name: users-api
-    ports:
-      - "${USERS_API_PORT:-5001}:5001"
-    volumes:
-      - ./backend/users-api:/src/backend/users-api
-      - ./shared:/src/shared
-      - /src/backend/users-api/node_modules
-    environment:
-      - PORT=5001
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=users_db
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/users_db
-    restart: unless-stopped
-    networks:
-      - app-network
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  shop-api:
-    build:
-      context: .
-      dockerfile: backend/shop-api/Dockerfile.dev
-    container_name: shop-api
-    ports:
-      - "${SHOP_API_PORT:-5003}:5003"
-    volumes:
-      - ./backend/shop-api:/src/backend/shop-api
-      - ./shared:/src/shared
-      - /src/backend/shop-api/node_modules
-    environment:
-      - PORT=5003
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=seo_facile_shops
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/seo_facile_shops
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
-      - SHOPIFY_HOST_NAME=${SHOPIFY_HOST_NAME:-localhost:4000}
-    restart: unless-stopped
-    networks:
-      - app-network
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-  generations-api:
-    build:
-      context: ./backend/generations-api
-      dockerfile: Dockerfile.dev
-    container_name: generations-api
-    ports:
-      - "${GENERATIONS_API_PORT:-5002}:5002"
-    volumes:
-      - ./backend/generations-api:/src
-      - /src/node_modules
-    environment:
-      - PORT=5002
-      - MONGO_URI=${MONGO_URI}
-    restart: unless-stopped
-    networks:
-      - app-network
-    depends_on:
-      - mongo
-
   mongo:
     image: mongo:latest
     container_name: mongo
+    command: ["mongod", "--replSet", "rs0"]
     ports:
       - "${MONGO_PORT:-27017}:27017"
     volumes:
@@ -172,20 +190,21 @@ services:
     networks:
       - app-network
 
-  mongo-express:
-    image: mongo-express
-    container_name: mongo-express
-    ports:
-      - "${MONGO_EXPRESS_PORT:-8081}:8081"
-    environment:
-      - ME_CONFIG_MONGODB_SERVER=mongo
-      - ME_CONFIG_MONGODB_PORT=27017
-    restart: unless-stopped
-    networks:
-      - app-network
+  mongo-init-replica:
+    image: mongo:latest
+    container_name: mongo-init-replica
     depends_on:
       - mongo
+    entrypoint: >
+      mongosh --host mongo --eval
+      "try { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'mongo:27017' }] }) } catch(e) { rs.status() }"
+    restart: "no"
+    networks:
+      - app-network
 
+  # ═══════════════════════════════════════════════
+  # PostgreSQL
+  # ═══════════════════════════════════════════════
   postgres:
     image: postgres:15-alpine
     container_name: postgres
@@ -206,6 +225,24 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # ═══════════════════════════════════════════════
+  # Admin Tools
+  # ═══════════════════════════════════════════════
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    ports:
+      - "${MONGO_EXPRESS_PORT:-8081}:8081"
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=mongo
+      - ME_CONFIG_MONGODB_PORT=27017
+      - ME_CONFIG_MONGODB_URL=mongodb://mongo:27017/?replicaSet=rs0
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      - mongo
 
   adminer:
     image: adminer:latest

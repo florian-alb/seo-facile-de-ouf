@@ -1,15 +1,15 @@
 // backend/worker/src/consumer.ts
 import amqp, { Channel, Connection, ConsumeMessage } from 'amqplib';
 // import { generateWithClaude } from './services/claude.service';
-import { generateWithOpenAI } from './services/openai.service';
-import { Generation, IGeneration } from '../../generations-api/src/models/generation.model.ts';
+import { generateWithOpenAI, generateDescriptionWithOpenAI } from './services/openai.service';
+import { Generation, IGeneration } from './models/generation.model';
  
 const QUEUE_NAME = 'ai-generation-jobs';
 const MAX_RETRIES = 3;
  
 interface JobMessage {
   jobId: string;
-  type: 'full_description' | 'meta_only' | 'slug_only';
+  type: 'full_description' | 'meta_only' | 'slug_only' | 'description' | 'seoTitle' | 'seoDescription';
 }
  
 let channel: Channel;
@@ -125,34 +125,62 @@ async function handleError(
 }
 
  
-type JobType = 'full_description' | 'meta_only' | 'slug_only';
- 
+type JobType = 'full_description' | 'meta_only' | 'slug_only' | 'description' | 'seoTitle' | 'seoDescription';
+
 async function generateContent(
   generation: IGeneration,
   type: JobType
 ): Promise<IGeneration['content']> {
-  
+
   const input = {
     productName: generation.productName,
     keywords: generation.keywords
   };
-  
+
   switch (type) {
-    case 'full_description':
-      // Claude pour les descriptions complètes (meilleure qualité)
-      return await generateWithClaude(input);
-      
+    case 'description': {
+      // Generate product description HTML with OpenAI
+      const descriptionHtml = await generateDescriptionWithOpenAI({
+        ...input,
+        storeSettings: generation.storeSettings || null,
+        productContext: generation.productContext || null,
+      });
+      return {
+        title: generation.productName,
+        description: descriptionHtml,
+        metaTitle: '',
+        metaDescription: '',
+        slug: '',
+      };
+    }
+
     case 'meta_only':
-    case 'slug_only':
-      // OpenAI pour les meta tags (moins cher)
+    case 'slug_only': {
+      // OpenAI for meta tags
       const meta = await generateWithOpenAI(input);
       return {
         title: generation.productName,
         description: '',
         ...meta
       };
-      
-    default:
-      return await generateWithClaude(input);
+    }
+
+    case 'full_description':
+    default: {
+      // Full description: use OpenAI description + meta for now (Claude TODO)
+      const [descHtml, metaContent] = await Promise.all([
+        generateDescriptionWithOpenAI({
+          ...input,
+          storeSettings: generation.storeSettings || null,
+          productContext: generation.productContext || null,
+        }),
+        generateWithOpenAI(input),
+      ]);
+      return {
+        title: generation.productName,
+        description: descHtml,
+        ...metaContent,
+      };
+    }
   }
 }
