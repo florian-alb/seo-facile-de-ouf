@@ -1,62 +1,23 @@
-FROM node:22-alpine AS base
+FROM node:20-alpine
 
-# Install pnpm
-RUN npm install -g pnpm
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
 
-# Dependencies stage
-FROM base AS deps
-WORKDIR /app
+WORKDIR /src
 
-# Copy package files
-COPY package.json pnpm-lock.yaml ./
+# Copier les fichiers workspace
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --prod=false
+# Copier shared
+COPY shared ./shared
 
-# Builder stage
-FROM base AS builder
-WORKDIR /app
+# Copier le frontend
+COPY frontend ./frontend
 
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
+# Installer les dépendances
+RUN pnpm install --filter frontend...
 
-# Copy source code
-COPY . .
-
-# Disable telemetry during build
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Build application
-RUN pnpm build
-
-# Production dependencies
-RUN pnpm install --frozen-lockfile --prod
-
-# Runner stage
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Create non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copy necessary files
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
-# Set correct permissions
-RUN chown -R nextjs:nodejs /app
-
-USER nextjs
+WORKDIR /src/frontend
 
 EXPOSE 3000
 
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-CMD ["node", "server.js"]
-
+CMD ["pnpm", "run", "dev"]

@@ -1,15 +1,15 @@
 FROM node:20-alpine
- 
-WORKDIR /app
- 
-# Copier les fichiers de dépendances
-COPY package.json pnpm-lock.yaml ./
- 
-# Installer pnpm et les dépendances
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
- 
-# Copier le code source
-COPY . .
- 
-# Lancer le worker
-CMD ["pnpm", "start"]
+
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
+
+WORKDIR /src
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+COPY backend/worker ./backend/worker
+
+RUN pnpm install --filter worker...
+
+WORKDIR /src/backend/worker
+
+CMD ["pnpm", "run", "dev"]

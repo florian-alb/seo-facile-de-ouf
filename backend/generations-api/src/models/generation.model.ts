@@ -1,10 +1,32 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export type FieldType = "description" | "seoTitle" | "seoDescription" | "full_description" | "meta_only" | "slug_only";
+
+export interface IStoreSettings {
+  nicheKeyword: string;
+  nicheDescription: string;
+  language: string;
+  productWordCount: number;
+  customerPersona: string;
+}
+
+export interface IProductContext {
+  title: string;
+  tags: string[];
+  vendor: string | null;
+  productType: string | null;
+  price: number;
+  currentDescription: string | null;
+}
+
 export interface IGeneration extends Document {
   // Infos produit
   productId: string;
   productName: string;
   keywords: string[];
+
+  // Type de champ a generer
+  fieldType: FieldType;
 
   // État du job
   status: "pending" | "processing" | "completed" | "failed";
@@ -17,6 +39,10 @@ export interface IGeneration extends Document {
     metaDescription: string;
     slug: string;
   };
+
+  // Contexte pour le prompt IA
+  storeSettings?: IStoreSettings;
+  productContext?: IProductContext;
 
   // Métadonnées
   error?: string;
@@ -36,6 +62,12 @@ const GenerationSchema = new Schema(
     productName: { type: String, required: true },
     keywords: [{ type: String }],
 
+    fieldType: {
+      type: String,
+      enum: ["description", "seoTitle", "seoDescription", "full_description", "meta_only", "slug_only"],
+      default: "full_description",
+    },
+
     status: {
       type: String,
       enum: ["pending", "processing", "completed", "failed"],
@@ -48,6 +80,23 @@ const GenerationSchema = new Schema(
       metaTitle: String,
       metaDescription: String,
       slug: String,
+    },
+
+    storeSettings: {
+      nicheKeyword: String,
+      nicheDescription: String,
+      language: String,
+      productWordCount: Number,
+      customerPersona: String,
+    },
+
+    productContext: {
+      title: String,
+      tags: [String],
+      vendor: String,
+      productType: String,
+      price: Number,
+      currentDescription: String,
     },
 
     error: String,

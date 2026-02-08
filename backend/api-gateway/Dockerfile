@@ -1,18 +1,17 @@
-FROM node:22-alpine
+FROM node:20-alpine
+
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
 
 WORKDIR /src
 
-COPY package*.json ./
-RUN npm install
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-COPY . .
+COPY backend/api-gateway ./backend/api-gateway
 
-ENV GENERATIONS_API_URL=http://generations-api:5002
-ENV USERS_API_URL=http://users-api:5001
-ENV MONGO_EXPRESS_URL=http://mongo-express:8081
+RUN pnpm install --filter api-gateway...
 
-# Build TypeScript to JavaScript
-RUN npm run build
+WORKDIR /src/backend/api-gateway
 
-EXPOSE 3000
-CMD ["node", "dist/index.js"]
+EXPOSE 4000
+
+CMD ["pnpm", "run", "dev"]

@@ -1,24 +1,26 @@
-FROM node:20-bullseye-slim
+FROM node:20-alpine
+
+RUN corepack enable && corepack prepare pnpm@10.14.0 --activate
 
 WORKDIR /src
 
-# Ensure system libraries required by Prisma are available (libssl1.1)
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates openssl libssl1.1 \
-    && rm -rf /var/lib/apt/lists/*
+# Copier les fichiers workspace
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-COPY package*.json ./
-COPY prisma ./prisma
-COPY prisma.config.ts ./
-ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
-RUN npm install --legacy-peer-deps
+# Copier shared
+COPY shared ./shared
 
-COPY . .
+# Copier le service
+COPY backend/users-api ./backend/users-api
 
-# Build TypeScript to JavaScript
-RUN npm run build
+# Installer les dépendances
+RUN pnpm install --filter public-api...
+
+WORKDIR /src/backend/users-api
+
+# Prisma
+RUN pnpm prisma generate
 
 EXPOSE 5001
 
-# Generate Prisma client, run migrations, and start the app
-CMD ["sh", "-c", "npx prisma generate && npx prisma migrate deploy && node dist/index.js"]
+CMD ["pnpm", "run", "dev"]

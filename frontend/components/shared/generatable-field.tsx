@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +17,7 @@ interface GeneratableFieldProps {
   value: string;
   error?: string;
   disabled?: boolean;
+  isGenerating?: boolean;
   showCounter?: boolean;
   onGenerate: () => void;
   children: React.ReactNode;
@@ -33,6 +34,7 @@ export function GeneratableField({
   value,
   error,
   disabled,
+  isGenerating = false,
   showCounter = true,
   onGenerate,
   children,
@@ -50,10 +52,19 @@ export function GeneratableField({
             variant="ghost"
             size="sm"
             onClick={onGenerate}
-            disabled={disabled}
+            disabled={disabled || isGenerating}
           >
-            <Sparkles className="h-4 w-4 mr-1" />
-            Générer
+            {isGenerating ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                Génération...
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4 mr-1" />
+                Générer
+              </>
+            )}
           </Button>
         </CardAction>
       </CardHeader>
