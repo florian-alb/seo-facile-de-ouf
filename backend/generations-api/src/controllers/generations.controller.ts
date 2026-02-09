@@ -39,3 +39,49 @@ export async function getGenerationById(
     next(err);
   }
 }
+
+export async function getGenerationsByProductId(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const productId = req.params.productId;
+    const userId = req.userId!;
+
+    if (!productId) {
+      return res.status(400).json({ error: "productId required" });
+    }
+
+    const generations = await generationsService.getByProductId(
+      productId,
+      userId
+    );
+    res.json({ success: true, data: generations });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getGenerationsByCollectionId(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const collectionId = req.params.collectionId;
+    const userId = req.userId!;
+
+    if (!collectionId) {
+      return res.status(400).json({ error: "collectionId required" });
+    }
+
+    const generations = await generationsService.getByCollectionId(
+      collectionId,
+      userId
+    );
+    res.json({ success: true, data: generations });
+  } catch (err) {
+    next(err);
+  }
+}

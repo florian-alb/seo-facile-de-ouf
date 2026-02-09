@@ -146,6 +146,8 @@ const GenerationSchema = new Schema(
 // Index pour les requêtes fréquentes
 GenerationSchema.index({ status: 1, createdAt: -1 });
 GenerationSchema.index({ userId: 1, shopId: 1 });
+GenerationSchema.index({ productId: 1, userId: 1, createdAt: -1 });
+GenerationSchema.index({ collectionId: 1, userId: 1, createdAt: -1 });
 
 export const Generation = mongoose.model<IGeneration>(
   "Generation",

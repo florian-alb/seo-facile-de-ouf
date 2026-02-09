@@ -14,6 +14,9 @@ router.use(requireAuth);
 
 router.get("/", generationsController.getAllGenerations);
 
+router.get("/product/:productId", generationsController.getGenerationsByProductId);
+router.get("/collection/:collectionId", generationsController.getGenerationsByCollectionId);
+
 router.get("/:id", generationsController.getGenerationById);
 
 // ═══════════════════════════════════════════════════════════
