@@ -1,8 +1,9 @@
 "use client";
 
 import type { UserPublic } from "@seo-facile-de-ouf/shared/src/user";
+import { useTheme } from "next-themes";
 
-import { Command } from "lucide-react";
+import { Command, Moon, Sun } from "lucide-react";
 
 import { NavUser } from "@/components/sidebar/nav-user";
 import { StoresSection } from "@/components/sidebar/stores-section";
@@ -23,6 +24,8 @@ export function AppSidebar({
   user: UserPublic;
   onLogout: () => Promise<void>;
 }) {
+  const { setTheme, resolvedTheme } = useTheme();
+
   return (
     <Sidebar variant="inset">
       <SidebarHeader>
@@ -48,6 +51,19 @@ export function AppSidebar({
         <StoresSection />
       </SidebarContent>
       <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              onClick={() =>
+                setTheme(resolvedTheme === "dark" ? "light" : "dark")
+              }
+            >
+              <Sun className="size-4 scale-100 rotate-0 transition-transform dark:scale-0 dark:-rotate-90" />
+              <Moon className="absolute size-4 scale-0 rotate-90 transition-transform dark:scale-100 dark:rotate-0" />
+              <span>Changer le thème</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <NavUser user={user} handlLogout={onLogout} />
       </SidebarFooter>
     </Sidebar>
