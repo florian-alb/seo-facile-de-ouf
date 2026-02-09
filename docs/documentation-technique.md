@@ -18,50 +18,63 @@ Albora Florian - Fravalo Killian | Ynov Toulouse 2026-2027
   - [2.2 Étude de la concurrence](#22-étude-de-la-concurrence)
   - [2.3 Valeur ajoutée d'EasySeo](#23-valeur-ajoutée-deasyseo)
   - [2.4 Cas d'usage principaux](#24-cas-dusage-principaux)
-- [3. Architecture globale](#3-architecture-globale)
-  - [3.1 Vue d'ensemble](#31-vue-densemble)
-  - [3.2 Pourquoi des microservices ?](#32-pourquoi-des-microservices-)
-  - [3.3 Le rôle de l'API Gateway](#33-le-rôle-de-lapi-gateway)
-  - [3.4 Communication synchrone vs asynchrone](#34-communication-synchrone-vs-asynchrone)
-  - [3.5 Diagramme d'architecture](#35-diagramme-darchitecture)
-- [4. Stack technique](#4-stack-technique)
-  - [4.1 TypeScript partout](#41-typescript-partout)
-  - [4.2 Backend - Node.js et Express](#42-backend---nodejs-et-express)
-  - [4.3 Frontend - Next.js et React](#43-frontend---nextjs-et-react)
-  - [4.4 Bases de données](#44-bases-de-données)
-  - [4.5 RabbitMQ - le broker de messages](#45-rabbitmq---le-broker-de-messages)
-  - [4.6 Intelligence Artificielle](#46-intelligence-artificielle)
-  - [4.7 UI/UX - Tailwind et Shadcn/ui](#47-uiux---tailwind-et-shadcnui)
-  - [4.8 Docker et pnpm](#48-docker-et-pnpm)
-- [5. Architecture Backend détaillée](#5-architecture-backend-détaillée)
-  - [5.1 API Gateway](#51-api-gateway)
-  - [5.2 Microservice Users](#52-microservice-users)
-  - [5.3 Microservice Generations](#53-microservice-generations)
-  - [5.4 Microservice Shop](#54-microservice-shop)
-  - [5.5 Worker](#55-worker)
-- [6. Gestion des données](#6-gestion-des-données)
-  - [6.1 PostgreSQL - Users](#61-postgresql---users)
-  - [6.2 PostgreSQL - Shop](#62-postgresql---shop)
-  - [6.3 MongoDB - Generations](#63-mongodb---generations)
-- [7. Frontend et expérience utilisateur](#7-frontend-et-expérience-utilisateur)
-  - [7.1 Pages et parcours utilisateur](#71-pages-et-parcours-utilisateur)
-  - [7.2 Gestion des états et appels API](#72-gestion-des-états-et-appels-api)
-  - [7.3 Sécurité côté client](#73-sécurité-côté-client)
-- [8. Intelligence Artificielle - en détail](#8-intelligence-artificielle---en-détail)
-  - [8.1 Pipeline de génération](#81-pipeline-de-génération)
-  - [8.2 Prompt engineering](#82-prompt-engineering)
-  - [8.3 Types de génération](#83-types-de-génération)
-  - [8.4 Gestion des erreurs et retries](#84-gestion-des-erreurs-et-retries)
-- [9. Authentification et sécurité](#9-authentification-et-sécurité)
-  - [9.1 Better Auth](#91-better-auth)
-  - [9.2 Flux d'authentification](#92-flux-dauthentification)
-  - [9.3 Chiffrement des données sensibles](#93-chiffrement-des-données-sensibles)
-  - [9.4 Sécurité inter-services](#94-sécurité-inter-services)
-- [10. Déploiement et environnement](#10-déploiement-et-environnement)
-  - [10.1 Environnement local](#101-environnement-local)
-  - [10.2 Docker Compose](#102-docker-compose)
-  - [10.3 Variables d'environnement](#103-variables-denvironnement)
-- [11. Endpoints API](#11-endpoints-api)
+- [3. Fonctionnalités de l'application](#3-fonctionnalités-de-lapplication)
+  - [3.1 Landing page](#31-landing-page)
+  - [3.2 Authentification](#32-authentification)
+  - [3.3 Dashboard](#33-dashboard)
+  - [3.4 Gestion des boutiques](#34-gestion-des-boutiques)
+  - [3.5 Gestion des produits](#35-gestion-des-produits)
+  - [3.6 Gestion des collections](#36-gestion-des-collections)
+  - [3.7 Génération de contenu IA](#37-génération-de-contenu-ia)
+  - [3.8 Historique des générations](#38-historique-des-générations)
+  - [3.9 Paramètres SEO du store](#39-paramètres-seo-du-store)
+  - [3.10 Éditeur de texte riche](#310-éditeur-de-texte-riche)
+  - [3.11 Thème sombre / clair](#311-thème-sombre--clair)
+- [4. Architecture globale](#4-architecture-globale)
+  - [4.1 Vue d'ensemble](#41-vue-densemble)
+  - [4.2 Pourquoi des microservices ?](#42-pourquoi-des-microservices-)
+  - [4.3 Le rôle de l'API Gateway](#43-le-rôle-de-lapi-gateway)
+  - [4.4 Communication synchrone vs asynchrone](#44-communication-synchrone-vs-asynchrone)
+  - [4.5 Diagramme d'architecture](#45-diagramme-darchitecture)
+- [5. Stack technique](#5-stack-technique)
+  - [5.1 TypeScript partout](#51-typescript-partout)
+  - [5.2 Backend - Node.js et Express](#52-backend---nodejs-et-express)
+  - [5.3 Frontend - Next.js et React](#53-frontend---nextjs-et-react)
+  - [5.4 Bases de données](#54-bases-de-données)
+  - [5.5 RabbitMQ - le broker de messages](#55-rabbitmq---le-broker-de-messages)
+  - [5.6 Intelligence Artificielle](#56-intelligence-artificielle)
+  - [5.7 UI/UX - Tailwind et Shadcn/ui](#57-uiux---tailwind-et-shadcnui)
+  - [5.8 Docker et pnpm](#58-docker-et-pnpm)
+  - [5.9 Justification des choix techniques](#59-justification-des-choix-techniques)
+- [6. Architecture Backend détaillée](#6-architecture-backend-détaillée)
+  - [6.1 API Gateway](#61-api-gateway)
+  - [6.2 Microservice Users](#62-microservice-users)
+  - [6.3 Microservice Generations](#63-microservice-generations)
+  - [6.4 Microservice Shop](#64-microservice-shop)
+  - [6.5 Worker](#65-worker)
+- [7. Gestion des données](#7-gestion-des-données)
+  - [7.1 PostgreSQL - Users](#71-postgresql---users)
+  - [7.2 PostgreSQL - Shop](#72-postgresql---shop)
+  - [7.3 MongoDB - Generations](#73-mongodb---generations)
+- [8. Frontend et expérience utilisateur](#8-frontend-et-expérience-utilisateur)
+  - [8.1 Pages et parcours utilisateur](#81-pages-et-parcours-utilisateur)
+  - [8.2 Gestion des états et appels API](#82-gestion-des-états-et-appels-api)
+  - [8.3 Sécurité côté client](#83-sécurité-côté-client)
+- [9. Intelligence Artificielle - en détail](#9-intelligence-artificielle---en-détail)
+  - [9.1 Pipeline de génération](#91-pipeline-de-génération)
+  - [9.2 Prompt engineering](#92-prompt-engineering)
+  - [9.3 Types de génération](#93-types-de-génération)
+  - [9.4 Gestion des erreurs et retries](#94-gestion-des-erreurs-et-retries)
+- [10. Authentification et sécurité](#10-authentification-et-sécurité)
+  - [10.1 Better Auth](#101-better-auth)
+  - [10.2 Flux d'authentification](#102-flux-dauthentification)
+  - [10.3 Chiffrement des données sensibles](#103-chiffrement-des-données-sensibles)
+  - [10.4 Sécurité inter-services](#104-sécurité-inter-services)
+- [11. Déploiement et environnement](#11-déploiement-et-environnement)
+  - [11.1 Environnement local](#111-environnement-local)
+  - [11.2 Docker Compose](#112-docker-compose)
+  - [11.3 Variables d'environnement](#113-variables-denvironnement)
+- [12. Endpoints API](#12-endpoints-api)
 
 ---
 
@@ -142,9 +155,202 @@ Le marchand a une nouvelle collection de 50 produits. Il sélectionne la collect
 
 ---
 
-## 3. Architecture globale
+## 3. Fonctionnalités de l'application
 
-### 3.1 Vue d'ensemble
+### 3.1 Landing page
+
+La page d'accueil est la vitrine commerciale d'EasySeo. Elle est composée de plusieurs sections :
+
+- **Hero** : accroche principale ("Générez vos fiches produits Shopify en 30 secondes"), badge "Powered by GPT-4o & Claude", boutons CTA et maquette animée montrant une génération en direct
+- **Statistiques** : chiffres clés et preuve sociale
+- **Grille de fonctionnalités** : présentation des 8 fonctionnalités clés (gestion multi-boutiques, synchronisation Shopify bidirectionnelle, streaming SSE en temps réel, personnalisation SEO par store, génération complète, génération en masse, éditeur WYSIWYG, IA de pointe)
+- **Comment ça marche** : processus en 4 étapes (connecter sa boutique → configurer le SEO → générer le contenu → publier sur Shopify)
+- **Tarification** : 3 plans (Gratuit, Pro à 49€/mois, Agence à 109€/mois) avec détail des limites et fonctionnalités incluses
+- **FAQ** : 6 questions fréquentes (modèles IA utilisés, compétences requises, mécanisme de sync, personnalisation, unicité du contenu, politique d'annulation)
+- **CTA final** et **Footer**
+
+![Architecture globale](images/landing-page.png)
+
+### 3.2 Authentification
+
+EasySeo propose deux modes d'inscription et de connexion :
+
+**Email + mot de passe :**
+
+- Inscription avec nom, email, mot de passe (minimum 8 caractères) et confirmation
+- Connexion classique email/mot de passe
+- Validation des formulaires via Zod
+
+**OAuth (connexion sociale) :**
+
+- GitHub
+- Google
+- Roblox
+
+Après authentification, l'utilisateur est redirigé vers le dashboard. Les sessions sont gérées par Better Auth avec des JWT stockés dans des cookies HTTP-only.
+
+![Architecture globale](images/sign-in.png)
+![Architecture globale](images/sign-up.png)
+
+### 3.3 Dashboard
+
+Le dashboard est la page d'accueil une fois connecté. Il offre une vue d'ensemble de l'activité :
+
+- **Cartes statistiques** : nombre de boutiques connectées, total de produits, total de collections, nombre de générations complétées
+- **Générations récentes** : liste des derniers jobs de génération avec leur statut
+- **Aperçu des boutiques** : toutes les boutiques connectées avec leur état
+- **Actions rapides** : accès direct aux produits, aux paramètres SEO et à l'ajout de boutique
+
+La sidebar de navigation à gauche liste toutes les boutiques avec un accès rapide à leurs collections, produits et paramètres.
+
+![Architecture globale](images/dashboard.png)
+
+### 3.4 Gestion des boutiques
+
+L'utilisateur peut connecter plusieurs boutiques Shopify à EasySeo :
+
+**Ajout d'une boutique :**
+Un dialog permet de renseigner le nom de la boutique, le domaine Shopify (xxx.myshopify.com), le Client ID et le Client Secret. Les credentials sont chiffrés en AES-256-GCM avant stockage.
+
+**Modification :**
+Les informations et credentials d'une boutique peuvent être mis à jour via un dialog d'édition.
+
+**Navigation multi-boutiques :**
+La sidebar affiche toutes les boutiques avec des indicateurs de statut (connectée / déconnectée). Chaque boutique donne accès à ses sections : Collections, Produits, Paramètres.
+
+### 3.5 Gestion des produits
+
+**Liste des produits :**
+Un tableau de données interactif (@tanstack/react-table) affiche tous les produits d'une boutique avec :
+
+- Image miniature, titre, statut (Active, Draft, Archived)
+- Prix, tags, vendor
+- Associations aux collections
+- Tri par colonnes et pagination
+- Filtres par statut et par collection
+- Recherche par titre
+
+**Synchronisation :**
+Un bouton "Synchroniser" récupère les produits depuis l'API GraphQL de Shopify et met à jour la base de données locale. La synchronisation est bidirectionnelle.
+
+**Page de détail d'un produit :**
+Chaque produit a sa propre page avec deux onglets :
+
+- **Onglet Aperçu** : formulaire d'édition avec les champs titre, description (éditeur riche), meta-titre, meta-description, tags et statut. Chaque champ SEO dispose d'un bouton "Générer" pour lancer l'IA.
+- **Onglet Historique** : liste de toutes les générations passées pour ce produit
+
+Une sidebar affiche les métadonnées en lecture seule (vendeur, type, prix, images, identifiant Shopify).
+
+**Actions disponibles :**
+
+- Sauvegarder les modifications localement
+- Publier sur Shopify (pousse les changements via l'API GraphQL)
+- Synchroniser (récupère les dernières données depuis Shopify)
+- Générer tout (lance la génération IA sur tous les champs d'un coup)
+
+![Architecture globale](images/product-generation.png)
+
+### 3.6 Gestion des collections
+
+La gestion des collections suit le même modèle que celle des produits :
+
+**Liste des collections :**
+Tableau interactif avec titre, handle, nombre de produits, statut. Synchronisation depuis Shopify, tri et pagination.
+
+**Page de détail d'une collection :**
+
+- Onglet Aperçu : formulaire d'édition (titre, description riche, meta-titre, meta-description) avec boutons "Générer" par champ
+- Onglet Historique : générations passées pour cette collection
+- Sidebar avec les métadonnées (handle, identifiant Shopify, nombre de produits, ordre de tri)
+
+**Actions :**
+Sauvegarder, publier sur Shopify, synchroniser, générer tout.
+
+### 3.7 Génération de contenu IA
+
+C'est la fonctionnalité centrale d'EasySeo. L'utilisateur peut générer du contenu SEO optimisé pour ses produits et collections.
+
+**Génération unitaire :**
+L'utilisateur clique sur "Générer" à côté d'un champ (description, meta-titre, meta-description). Le contenu est généré en quelques secondes et affiché en temps réel grâce au streaming SSE.
+
+**Génération complète :**
+Le bouton "Générer tout" lance la génération simultanée de tous les champs SEO d'un produit ou d'une collection (description + meta-titre + meta-description + slug).
+
+**Génération en masse (bulk) :**
+Jusqu'à 50 produits peuvent être générés en une seule opération. Les jobs sont distribués en parallèle via RabbitMQ et traités par les 3 workers.
+
+**Types de contenu générés :**
+
+| Type               | Description                                             |
+| ------------------ | ------------------------------------------------------- |
+| `description`      | Description HTML complète, structurée et optimisée SEO  |
+| `seoTitle`         | Meta-titre optimisé (< 60 caractères)                   |
+| `seoDescription`   | Meta-description optimisée (< 160 caractères)           |
+| `full_description` | Description + meta-titre + meta-description + slug      |
+| `meta_only`        | Meta-titre + meta-description + slug (sans description) |
+| `slug_only`        | Slug URL optimisé uniquement                            |
+
+**Suivi en temps réel :**
+Chaque génération passe par les statuts `pending` → `processing` → `completed` (ou `failed`). Le frontend reçoit les mises à jour en temps réel via SSE (Server-Sent Events) alimentés par les MongoDB Change Streams. L'utilisateur voit le résultat apparaître sans recharger la page.
+
+**Contexte envoyé à l'IA :**
+Chaque génération inclut le contexte complet : informations produit/collection (titre, tags, prix, vendeur, description actuelle), paramètres SEO du store (niche, langue, persona client, nombre de mots) et les mots-clés fournis par l'utilisateur.
+
+### 3.8 Historique des générations
+
+Chaque produit et chaque collection dispose d'un onglet "Historique" qui liste toutes les générations passées :
+
+- Date et heure de la génération
+- Type de champ généré (description, meta-titre, etc.)
+- Statut (complété, échoué)
+- Aperçu du contenu généré
+
+En cliquant sur une entrée, l'utilisateur accède au détail complet de la génération : contenu généré, mots-clés utilisés, paramètres du store au moment de la génération et le contexte produit/collection.
+
+![Architecture globale](images/history.png)
+
+### 3.9 Paramètres SEO du store
+
+Chaque boutique dispose d'une page de paramètres SEO qui personnalise le comportement de l'IA :
+
+| Paramètre                     | Description                                                    | Exemple                                            |
+| ----------------------------- | -------------------------------------------------------------- | -------------------------------------------------- |
+| **Mot-clé de niche**          | Le mot-clé principal de la boutique                            | "puzzle en bois"                                   |
+| **Description de niche**      | Positionnement de la boutique sur son marché                   | "Boutique spécialisée dans les puzzles artisanaux" |
+| **Langue**                    | Langue de génération du contenu                                | Français, Anglais, Espagnol, Allemand, Italien     |
+| **Nombre de mots produit**    | Longueur souhaitée pour les descriptions produit (200-600)     | 300                                                |
+| **Nombre de mots collection** | Longueur souhaitée pour les descriptions collection (600-1200) | 800                                                |
+| **Persona client**            | Description du client type pour adapter le ton                 | "Femme active 25-40 ans, passionnée de sport"      |
+
+Ces paramètres sont intégrés dans chaque job de génération pour que l'IA produise du contenu adapté à la cible et à la niche de la boutique.
+
+![Architecture globale](images/store-settings.png)
+
+### 3.10 Éditeur de texte riche
+
+Les descriptions de produits et de collections utilisent un éditeur de texte riche basé sur **Tiptap 3** :
+
+- **Mode visuel (WYSIWYG)** : barre d'outils avec mise en forme (gras, italique), titres (H2, H3), listes à puces et numérotées, blocs de code
+- **Mode HTML** : édition directe du code HTML dans un éditeur monospace
+- **Compteur** : nombre de mots et de caractères affiché en temps réel
+- **Basculement** : l'utilisateur peut passer du mode visuel au mode HTML via des onglets
+
+Quand l'IA génère une description, le contenu HTML est automatiquement injecté dans l'éditeur.
+
+### 3.11 Thème sombre / clair
+
+EasySeo supporte le thème sombre et le thème clair :
+
+- Détection automatique de la préférence système
+- Bascule manuelle via un bouton dans la sidebar (icônes soleil/lune animées)
+- Préférence sauvegardée et persistante entre les sessions
+- Géré par la librairie **next-themes**
+
+---
+
+## 4. Architecture globale
+
+### 4.1 Vue d'ensemble
 
 EasySeo utilise une architecture microservices orientée événements. Au lieu d'avoir un seul gros serveur qui fait tout, on a plusieurs petits services spécialisés qui communiquent entre eux.
 
@@ -162,7 +368,7 @@ Le système est composé de :
 | **PostgreSQL**            | Données relationnelles (users, shops)                |
 | **MongoDB**               | Données de génération (jobs, contenus)               |
 
-### 3.2 Pourquoi des microservices ?
+### 4.2 Pourquoi des microservices ?
 
 EasySeo n'est pas une simple application CRUD. On doit gérer des tâches longues (appels IA qui peuvent prendre plusieurs secondes), des pics de charge (un marchand qui lance 200 générations d'un coup) et des domaines métier bien distincts.
 
@@ -173,7 +379,7 @@ L'architecture microservices nous apporte :
 - **Résilience** : si le service de génération tombe, l'authentification et la gestion des boutiques continuent de fonctionner normalement.
 - **Évolutivité** : on peut facilement ajouter un nouveau service (ex: analytics, facturation) sans impacter l'existant.
 
-### 3.3 Le rôle de l'API Gateway
+### 4.3 Le rôle de l'API Gateway
 
 L'API Gateway est le seul point d'entrée pour le frontend. Le frontend ne parle jamais directement aux microservices, tout passe par la Gateway.
 
@@ -185,7 +391,7 @@ L'API Gateway est le seul point d'entrée pour le frontend. Le frontend ne parle
 
 La Gateway utilise `http-proxy-middleware` pour rediriger les requêtes. Concrètement, quand le frontend fait un appel à `/stores/xxx`, la Gateway le redirige vers le Shop API sur le port 5003.
 
-### 3.4 Communication synchrone vs asynchrone
+### 4.4 Communication synchrone vs asynchrone
 
 On utilise deux types de communication selon le besoin :
 
@@ -216,21 +422,21 @@ Le flux asynchrone fonctionne comme ceci :
 10. Le frontend affiche le résultat en temps réel
 ```
 
-> IMAGE-ICI : Schéma du flux asynchrone de génération montrant les étapes 1 à 10 ci-dessus, avec les flèches entre Frontend, API Gateway, Generations API, RabbitMQ, Worker, MongoDB et les APIs d'IA
+![Architecture globale](images/flux-asynchrone.png)
 
 L'avantage principal : l'API n'est jamais bloquée. Même si la génération prend 30 secondes, le frontend reste réactif et l'utilisateur voit l'avancement en temps réel.
 
-### 3.5 Diagramme d'architecture
+### 4.5 Diagramme d'architecture
 
-![Architecture globale](architecture.png)
+![Architecture globale](images/architecture-v2.png)
 
 Le schéma montre le frontend qui communique uniquement avec l'API Gateway, qui redirige vers les 3 microservices (Users, Shop, Generations). Le service Generations publie dans RabbitMQ, consommé par les workers qui mettent à jour MongoDB.
 
 ---
 
-## 4. Stack technique
+## 5. Stack technique
 
-### 4.1 TypeScript partout
+### 5.1 TypeScript partout
 
 Tout le projet est en TypeScript, du frontend au backend en passant par le worker. Ça nous apporte :
 
@@ -240,7 +446,7 @@ Tout le projet est en TypeScript, du frontend au backend en passant par le worke
 
 Par exemple, les types de génération (`GenerationFieldType`, `GenerationStatus`, `GenerationContent`) sont définis dans `shared/src/generation.ts` et utilisés aussi bien par le frontend que par le backend.
 
-### 4.2 Backend - Node.js et Express
+### 5.2 Backend - Node.js et Express
 
 - **Node.js** : moteur JavaScript côté serveur, idéal pour les applications avec beaucoup d'I/O asynchrone (appels API, requêtes BDD)
 - **Express 5.1** : framework web léger pour créer des API REST. On l'utilise pour chaque microservice
@@ -253,7 +459,7 @@ routes → controllers → services → base de données
 
 C'est un pattern classique qui garde le code organisé et facile à comprendre.
 
-### 4.3 Frontend - Next.js et React
+### 5.3 Frontend - Next.js et React
 
 - **Next.js 16** avec l'App Router et React 19
 - **SSR** (Server-Side Rendering) pour les pages critiques
@@ -261,7 +467,7 @@ C'est un pattern classique qui garde le code organisé et facile à comprendre.
 
 Les hooks custom dans `frontend/hooks/` encapsulent toute la logique de fetch et de gestion d'état. Par exemple, `useFieldGeneration` gère tout le flux SSE de génération IA.
 
-### 4.4 Bases de données
+### 5.4 Bases de données
 
 On utilise 2 types de bases de données selon les besoins :
 
@@ -278,7 +484,7 @@ On utilise 2 types de bases de données selon les besoins :
 - Le **Replica Set** est obligatoire car on utilise les **Change Streams** pour le SSE en temps réel. Sans replica set, les Change Streams ne fonctionnent pas.
 - Géré via **Mongoose 9.0**.
 
-### 4.5 RabbitMQ - le broker de messages
+### 5.5 RabbitMQ - le broker de messages
 
 RabbitMQ sert de file d'attente entre l'API Generations et les workers.
 
@@ -290,7 +496,7 @@ Fonctionnement :
 
 La queue est configurée comme **durable**, ce qui signifie que les messages survivent à un redémarrage de RabbitMQ.
 
-### 4.6 Intelligence Artificielle
+### 5.6 Intelligence Artificielle
 
 EasySeo intègre actuellement **OpenAI GPT-4o** pour toutes les générations :
 
@@ -302,7 +508,7 @@ Le système est conçu pour supporter **plusieurs fournisseurs d'IA**. L'intégr
 
 Chaque appel IA reçoit le contexte complet : informations produit (titre, tags, prix, vendeur), paramètres du store (niche, langue, persona client, nombre de mots souhaité) et les mots-clés fournis par l'utilisateur.
 
-### 4.7 UI/UX - Tailwind et Shadcn/ui
+### 5.7 UI/UX - Tailwind et Shadcn/ui
 
 - **Tailwind CSS 4** : classes utilitaires directement dans le JSX, pas de fichiers CSS à gérer
 - **Shadcn/ui** : composants accessibles et personnalisables, basés sur Radix. On les copie dans le projet et on les adapte, ce qui donne un contrôle total sur le style
@@ -313,9 +519,7 @@ Chaque appel IA reçoit le contexte complet : informations produit (titre, tags,
 - **Sonner** : notifications toast
 - **Lucide React** : icônes
 
-> IMAGE-ICI : Capture d'écran du dashboard principal montrant la sidebar avec les boutiques, la liste des collections avec le tableau (nom, nombre de produits, statut, bouton générer)
-
-### 4.8 Docker et pnpm
+### 5.8 Docker et pnpm
 
 **Docker** :
 
@@ -329,11 +533,39 @@ Chaque appel IA reçoit le contexte complet : informations produit (titre, tags,
 - Structure monorepo : `backend/*`, `frontend`, `shared`
 - Le package `shared` est référencé par les autres workspaces via `@seo-facile-de-ouf/shared`
 
+### 5.9 Justification des choix techniques
+
+Chaque technologie a été choisie pour une raison précise. Voici les justifications :
+
+**TypeScript plutôt que JavaScript :**
+TypeScript apporte une sécurité de typage qui réduit les erreurs à l'exécution et améliore la maintenabilité du code. Dans un monorepo où le backend et le frontend partagent des modèles de données (via le package `shared`), le typage statique garantit la cohérence des types entre les services. L'autocomplétion dans l'IDE accélère considérablement le développement.
+
+**RabbitMQ plutôt qu'un traitement synchrone :**
+La génération de contenu IA peut prendre plusieurs secondes par appel. Traiter ces requêtes de manière synchrone bloquerait l'API et dégraderait l'expérience utilisateur. RabbitMQ permet un traitement asynchrone avec une file d'attente durable : les jobs survivent aux redémarrages, les workers les traitent en parallèle (3 replicas), et si un worker plante, le message retourne dans la queue. C'est ce qui permet de lancer 50 générations d'un coup sans surcharger le système.
+
+**Persistence hybride (PostgreSQL + MongoDB) plutôt qu'une seule base :**
+Chaque base est utilisée pour ce qu'elle fait le mieux. PostgreSQL excelle pour les données relationnelles et structurées (utilisateurs, sessions, boutiques Shopify avec leurs relations produits/collections/settings). MongoDB est idéal pour les données flexibles et imbriquées comme les jobs de génération IA (contenu, contexte produit, settings du store dans un seul document) et surtout pour ses **Change Streams**, indispensables au streaming SSE en temps réel. Cette approche _polyglot persistence_ optimise à la fois les performances et la modélisation des données.
+
+**Next.js plutôt qu'un autre framework frontend :**
+Next.js offre le Server-Side Rendering (SSR) pour les pages critiques, un routing basé sur les fichiers qui simplifie l'architecture, et une intégration native avec TypeScript et React. Comparé à Angular, Next.js est plus léger et moins structurant, ce qui convient mieux à un projet de cette taille. L'écosystème React (hooks, composants) est aussi plus riche pour notre besoin.
+
+**GPT-4o et Claude plutôt qu'un seul modèle :**
+Les deux modèles ont des forces complémentaires. GPT-4o est performant et économique pour les tâches de mise en forme courtes (slugs, meta-titres, balises alt), tandis que Claude est privilégié pour les descriptions longues grâce à un ton plus naturel et une meilleure qualité rédactionnelle. Le système est conçu pour router les demandes vers le modèle le plus adapté selon le type de contenu.
+
+**Tailwind CSS et Shadcn/ui plutôt qu'une librairie de composants classique :**
+Tailwind permet un développement rapide grâce aux classes utilitaires directement dans le JSX, sans gérer de fichiers CSS séparés. Shadcn/ui n'est pas une librairie mais des templates de composants copiés dans le projet : on garde un contrôle total sur le code source et le style, contrairement à Material UI ou Ant Design où la personnalisation est limitée. Les composants sont basés sur Radix, ce qui garantit l'accessibilité.
+
+**Express plutôt que NestJS ou Fastify :**
+Express est léger, flexible et très bien documenté. Pour une architecture microservices où chaque service reste simple (routes → controllers → services), la structure imposée par NestJS serait du sur-engineering. Express 5.1 apporte les améliorations nécessaires (meilleur support async/await) sans la complexité d'un framework plus lourd.
+
+**Better Auth plutôt que NextAuth ou Passport :**
+Better Auth est une solution TypeScript-first qui gère nativement JWT, sessions, OAuth et le hachage des mots de passe. Contrairement à NextAuth (qui est lié à Next.js), Better Auth fonctionne côté backend Express, ce qui est nécessaire dans une architecture microservices où l'authentification est un service indépendant.
+
 ---
 
-## 5. Architecture Backend détaillée
+## 6. Architecture Backend détaillée
 
-### 5.1 API Gateway
+### 6.1 API Gateway
 
 **Port** : 4000
 
@@ -355,7 +587,7 @@ Pour les routes avec auth requise, la Gateway vérifie le token JWT de l'utilisa
 
 La Gateway utilise `http-proxy-middleware` pour le proxy. Elle ajoute un header `X-Gateway-Secret` à chaque requête proxifiée, que les microservices vérifient pour s'assurer que la requête vient bien de la Gateway et non d'un appel direct.
 
-### 5.2 Microservice Users
+### 6.2 Microservice Users
 
 **Port** : 5001 | **BDD** : PostgreSQL (`users_db`)
 
@@ -374,7 +606,7 @@ L'authentification repose sur **Better Auth**, qui gère :
 
 Le schéma Prisma définit 5 tables : `user`, `session`, `account`, `verification` et `jwks` (stockage des clés JWT).
 
-### 5.3 Microservice Generations
+### 6.3 Microservice Generations
 
 **Port** : 5002 | **BDD** : MongoDB (`generations-db`)
 
@@ -407,7 +639,7 @@ GET    /jobs                  → Liste filtrable (par shop, status, etc.)
 
 C'est ce mécanisme qui permet à l'utilisateur de voir le résultat apparaître en temps réel sans rafraîchir la page.
 
-### 5.4 Microservice Shop
+### 6.4 Microservice Shop
 
 **Port** : 5003 | **BDD** : PostgreSQL (`seo_facile_shops`)
 
@@ -431,7 +663,7 @@ Chaque boutique a des paramètres SEO personnalisables :
 
 Ces paramètres sont envoyés à l'IA avec chaque demande de génération pour personnaliser le contenu.
 
-### 5.5 Worker
+### 6.5 Worker
 
 **Replicas** : 3 | **BDD** : MongoDB (même instance que Generations API)
 
@@ -462,11 +694,11 @@ Pour les types combinés (`full_description`), le worker lance les générations
 
 ---
 
-## 6. Gestion des données
+## 7. Gestion des données
 
-### 6.1 PostgreSQL - Users
+### 7.1 PostgreSQL - Users
 
-> IMAGE-ICI : Schéma de la base de données Users (reproduire le diagramme dbdiagram.io du PDF avec les tables user, session, account, verification, jwks et leurs relations)
+![Architecture globale](images/user-db-schema.png)
 
 **Table `user`** :
 | Champ | Type | Description |
@@ -499,9 +731,9 @@ Stocke les clés publiques/privées pour la signature JWT (utilisées par Better
 **Table `verification`** :
 Stocke les tokens de vérification email avec une date d'expiration.
 
-### 6.2 PostgreSQL - Shop
+### 7.2 PostgreSQL - Shop
 
-> IMAGE-ICI : Schéma de la base de données Shop (reproduire le diagramme dbdiagram.io du PDF avec les tables store, store_settings, shopify_collection, shopify_product et leurs relations)
+> ![Architecture globale](images/shop-db-schema.png)
 
 **Table `store`** :
 | Champ | Type | Description |
@@ -537,9 +769,9 @@ Stocke les collections synchronisées depuis Shopify avec les champs SEO (seoTit
 **Table `shopify_product`** :
 Stocke les produits avec toutes les infos Shopify (titre, prix, vendor, tags, images) et les champs SEO éditables.
 
-### 6.3 MongoDB - Generations
+### 7.3 MongoDB - Generations
 
-> IMAGE-ICI : Schéma du document MongoDB Generation (reproduire le diagramme du PDF montrant la structure avec les objets imbriqués content, storeSettings, productContext)
+> ![Architecture globale](images/mongo-schema.png)
 
 Un document de génération ressemble à ça :
 
@@ -592,9 +824,9 @@ Les **index** sont définis sur :
 
 ---
 
-## 7. Frontend et expérience utilisateur
+## 8. Frontend et expérience utilisateur
 
-### 7.1 Pages et parcours utilisateur
+### 8.1 Pages et parcours utilisateur
 
 Le parcours est volontairement simple et linéaire :
 
@@ -605,13 +837,13 @@ L'utilisateur peut s'inscrire/se connecter via :
 - Email + mot de passe classique
 - OAuth : GitHub, Google
 
-> IMAGE-ICI : Capture de la page de création de compte montrant le formulaire (Name, Email, Password, Confirm Password) avec les boutons OAuth (GitHub, Google) en bas
+![Architecture globale](images/sign-up.png)
 
 **2. Dashboard principal**
 
 C'est la vue centrale. La sidebar à gauche liste les boutiques connectées avec leurs sections (Collections, Produits). Le contenu principal affiche les tableaux de données.
 
-> IMAGE-ICI : Capture du dashboard principal montrant la sidebar avec la boutique "Maketo" déployée (Collections, Produits), le tableau des collections avec colonnes (Nom, Nombre de produits, Statut, Action rapide)
+> ![Architecture globale](images/dashboard.png)
 
 **3. Ajout d'une boutique**
 
@@ -622,7 +854,7 @@ Un dialog permet de connecter une boutique Shopify en renseignant :
 - Langue
 - Client ID et Client Secret / Access Token Shopify
 
-> IMAGE-ICI : Capture du dialog "Ajouter une boutique" avec les champs de formulaire (nom, URL, domaine Shopify, langue, Client ID, Client Secret)
+![Architecture globale](images/add-store.png)
 
 **4. Page produit / collection**
 
@@ -634,21 +866,21 @@ Chaque produit ou collection a sa page de détail avec :
 - Un compteur de mots/caractères
 - Un bouton "Publier sur Shopify" pour pousser les modifications
 
-> IMAGE-ICI : Capture de la page de détail d'un produit montrant les champs éditables avec les boutons "Générer" et l'éditeur de texte riche Tiptap pour la description
+![Architecture globale](images/product-fields.png)
 
 **5. Historique des générations**
 
 Chaque produit/collection dispose d'un onglet historique qui liste toutes les générations passées avec leur date, statut et contenu.
 
-> IMAGE-ICI : Capture de l'onglet historique montrant la liste des générations passées avec date, type et statut
+![Architecture globale](images/history.png)
 
 **6. Paramètres du store**
 
 La page settings permet de configurer les paramètres SEO globaux du store (niche, langue, persona client, nombre de mots). Ces paramètres sont envoyés à l'IA pour personnaliser les générations.
 
-> IMAGE-ICI : Capture de la page paramètres du store montrant les champs de configuration SEO (niche, description, langue, nombre de mots, persona)
+![Architecture globale](images/store-settings.png)
 
-### 7.2 Gestion des états et appels API
+### 8.2 Gestion des états et appels API
 
 Le frontend utilise des **hooks custom** pour toute la logique métier :
 
@@ -670,7 +902,7 @@ Tous les appels API passent par `apiFetch()` dans `frontend/lib/api.ts`, qui :
 
 Le hook `useFieldGeneration` est le plus complexe. Il gère un état par type de champ (description, seoTitle, seoDescription), avec pour chaque champ : le jobId, le status, le résultat et l'erreur éventuelle. Quand on lance une génération, il POST la requête, ouvre une connexion SSE, écoute les mises à jour et ferme la connexion quand le job est terminé ou en erreur.
 
-### 7.3 Sécurité côté client
+### 8.3 Sécurité côté client
 
 - Les tokens d'auth sont stockés dans des **cookies HTTP-only** gérés par Better Auth (pas accessibles en JavaScript)
 - Les routes du dashboard sont protégées : si l'utilisateur n'est pas connecté, il est redirigé vers la page de login
@@ -679,9 +911,9 @@ Le hook `useFieldGeneration` est le plus complexe. Il gère un état par type de
 
 ---
 
-## 8. Intelligence Artificielle - en détail
+## 9. Intelligence Artificielle - en détail
 
-### 8.1 Pipeline de génération
+### 9.1 Pipeline de génération
 
 Voici le flux complet quand un utilisateur clique sur "Générer" :
 
@@ -714,7 +946,7 @@ Voici le flux complet quand un utilisateur clique sur "Générer" :
             Affiche le contenu généré dans le formulaire
 ```
 
-### 8.2 Prompt engineering
+### 9.2 Prompt engineering
 
 Chaque appel IA est construit avec un contexte riche pour obtenir des résultats pertinents. Le prompt inclut :
 
@@ -729,7 +961,7 @@ Pour les **meta-tags** (format JSON), le prompt demande un objet JSON structuré
 
 Les langues supportées sont : français, anglais, espagnol, allemand et italien.
 
-### 8.3 Types de génération
+### 9.3 Types de génération
 
 Le système supporte 6 types de génération, adaptés aux différents besoins :
 
@@ -744,7 +976,7 @@ Le système supporte 6 types de génération, adaptés aux différents besoins :
 
 Pour `full_description`, le worker lance en parallèle la génération de la description et des meta-tags, puis assemble les résultats. Ça permet de gagner du temps par rapport à 3 appels séquentiels.
 
-### 8.4 Gestion des erreurs et retries
+### 9.4 Gestion des erreurs et retries
 
 Si un appel IA échoue (timeout, erreur API, etc.) :
 
@@ -756,9 +988,9 @@ Si un appel IA échoue (timeout, erreur API, etc.) :
 
 ---
 
-## 9. Authentification et sécurité
+## 10. Authentification et sécurité
 
-### 9.1 Better Auth
+### 10.1 Better Auth
 
 L'authentification repose sur **Better Auth**, une librairie TypeScript qui gère :
 
@@ -772,7 +1004,7 @@ Les plugins Better Auth utilisés :
 - **JWT** : pour la génération et validation des tokens
 - **Bearer** : pour le support des tokens Bearer dans les headers
 
-### 9.2 Flux d'authentification
+### 10.2 Flux d'authentification
 
 ```
 [Frontend]  L'utilisateur s'inscrit / se connecte
@@ -792,7 +1024,7 @@ Les plugins Better Auth utilisés :
                Proxy vers le microservice cible
 ```
 
-### 9.3 Chiffrement des données sensibles
+### 10.3 Chiffrement des données sensibles
 
 Les credentials Shopify (Client ID, Client Secret, Access Token) sont **chiffrés en AES-256-GCM** avant d'être stockés en base.
 
@@ -805,7 +1037,7 @@ Le chiffrement fonctionne ainsi :
 
 Ce chiffrement garantit que même si la base de données est compromise, les credentials Shopify ne sont pas exploitables sans la clé.
 
-### 9.4 Sécurité inter-services
+### 10.4 Sécurité inter-services
 
 Les microservices ne sont pas exposés directement. Plusieurs mécanismes de sécurité sont en place :
 
@@ -815,9 +1047,9 @@ Les microservices ne sont pas exposés directement. Plusieurs mécanismes de sé
 
 ---
 
-## 10. Déploiement et environnement
+## 11. Déploiement et environnement
 
-### 10.1 Environnement local
+### 11.1 Environnement local
 
 **Prérequis :**
 
@@ -864,7 +1096,7 @@ pnpm run dev    # Lance tout en mode concurrent (frontend + tous les backends)
 
 Dans ce cas, il faut avoir PostgreSQL, MongoDB (en Replica Set) et RabbitMQ installés et lancés localement.
 
-### 10.2 Docker Compose
+### 11.2 Docker Compose
 
 Le `docker-compose.yml` définit 10 services :
 
@@ -889,7 +1121,7 @@ Le `docker-compose.yml` définit 10 services :
 
 Le worker est le seul service avec plusieurs replicas, ce qui permet de traiter plusieurs générations IA en parallèle.
 
-### 10.3 Variables d'environnement
+### 11.3 Variables d'environnement
 
 **Organisation :**
 
@@ -916,7 +1148,7 @@ Les fichiers `.env` ne sont **jamais commités** (exclus via `.gitignore`). Les 
 
 ---
 
-## 11. Endpoints API
+## 12. Endpoints API
 
 Voici le récapitulatif complet des endpoints exposés par l'API Gateway :
 
