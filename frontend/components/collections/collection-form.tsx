@@ -2,8 +2,10 @@
 
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useImperativeHandle, forwardRef } from "react";
+import { useEffect, useImperativeHandle, forwardRef, useCallback } from "react";
 import type { ShopifyCollection } from "@seo-facile-de-ouf/shared/src/shopify-collections";
+import { useStoreSettings } from "@/hooks/use-store-settings";
+import { useFieldGeneration } from "@/hooks/use-generation";
 
 import { Input } from "@/components/ui/input";
 import {
@@ -30,10 +32,12 @@ export interface CollectionFormRef {
   submit: (mode: "save" | "publish") => void;
   reset: () => void;
   getValues: () => CollectionFormSchema;
+  generateAll: () => void;
 }
 
 interface CollectionFormProps {
   collection: ShopifyCollection;
+  storeId: string;
   onSave: (data: CollectionFormSchema) => Promise<void>;
   onPublish: (data: CollectionFormSchema) => Promise<void>;
   onDirtyChange?: (isDirty: boolean) => void;
@@ -43,7 +47,7 @@ interface CollectionFormProps {
 
 export const CollectionForm = forwardRef<CollectionFormRef, CollectionFormProps>(
   function CollectionForm(
-    { collection, onSave, onPublish, onDirtyChange, isSaving, isPublishing },
+    { collection, storeId, onSave, onPublish, onDirtyChange, isSaving, isPublishing },
     ref
   ) {
     const {
@@ -53,6 +57,7 @@ export const CollectionForm = forwardRef<CollectionFormRef, CollectionFormProps>
       formState: { errors, isDirty },
       reset,
       getValues,
+      setValue,
       watch,
     } = useForm<CollectionFormSchema>({
       resolver: zodResolver(collectionFormSchema),
@@ -64,6 +69,50 @@ export const CollectionForm = forwardRef<CollectionFormRef, CollectionFormProps>
         seoDescription: collection.seoDescription || "",
       },
     });
+
+    // Store settings for AI generation
+    const { settings, fetchSettings } = useStoreSettings(storeId);
+    const { generations, startGeneration, isGenerating } = useFieldGeneration();
+
+    useEffect(() => {
+      fetchSettings();
+    }, [fetchSettings]);
+
+    // Inject generated description into form when completed
+    useEffect(() => {
+      const gen = generations.description;
+      if (gen.status === "completed" && gen.result) {
+        setValue("descriptionHtml", gen.result, { shouldDirty: true });
+        toast.success("Description de la collection générée avec succès");
+      }
+      if (gen.status === "failed" && gen.error) {
+        toast.error("Échec de la génération", { description: gen.error });
+      }
+    }, [generations.description.status, generations.description.result, generations.description.error, setValue]);
+
+    // Inject generated SEO title
+    useEffect(() => {
+      const gen = generations.seoTitle;
+      if (gen.status === "completed" && gen.result) {
+        setValue("seoTitle", gen.result, { shouldDirty: true });
+        toast.success("Titre SEO généré avec succès");
+      }
+      if (gen.status === "failed" && gen.error) {
+        toast.error("Échec de la génération du titre SEO", { description: gen.error });
+      }
+    }, [generations.seoTitle.status, generations.seoTitle.result, generations.seoTitle.error, setValue]);
+
+    // Inject generated SEO description
+    useEffect(() => {
+      const gen = generations.seoDescription;
+      if (gen.status === "completed" && gen.result) {
+        setValue("seoDescription", gen.result, { shouldDirty: true });
+        toast.success("Description SEO générée avec succès");
+      }
+      if (gen.status === "failed" && gen.error) {
+        toast.error("Échec de la génération de la description SEO", { description: gen.error });
+      }
+    }, [generations.seoDescription.status, generations.seoDescription.result, generations.seoDescription.error, setValue]);
 
     // Notify parent of dirty state changes
     useEffect(() => {
@@ -98,6 +147,69 @@ export const CollectionForm = forwardRef<CollectionFormRef, CollectionFormProps>
       }
     };
 
+    const buildStoreSettings = useCallback(() => {
+      if (!settings) return null;
+      return {
+        nicheKeyword: settings.nicheKeyword,
+        nicheDescription: settings.nicheDescription,
+        language: settings.language,
+        productWordCount: settings.productWordCount,
+        collectionWordCount: settings.collectionWordCount,
+        customerPersona: settings.customerPersona,
+      };
+    }, [settings]);
+
+    const buildCollectionContext = useCallback(() => ({
+      title: collection.title,
+      handle: collection.handle,
+      productsCount: collection.productsCount,
+      currentDescription: getValues("descriptionHtml") || null,
+    }), [collection, getValues]);
+
+    const handleGenerateDescription = useCallback(() => {
+      if (!settings) {
+        toast.warning("Paramètres du magasin non configurés", {
+          description: "Configurez vos paramètres SEO dans les réglages pour de meilleurs résultats.",
+        });
+      }
+      startGeneration({
+        entityType: "collection",
+        collectionId: collection.id,
+        collectionName: collection.title,
+        shopId: storeId,
+        fieldType: "description",
+        keywords: [],
+        storeSettings: buildStoreSettings(),
+        collectionContext: buildCollectionContext(),
+      });
+    }, [collection, storeId, settings, startGeneration, buildStoreSettings, buildCollectionContext]);
+
+    const handleGenerateSeoTitle = useCallback(() => {
+      startGeneration({
+        entityType: "collection",
+        collectionId: collection.id,
+        collectionName: collection.title,
+        shopId: storeId,
+        fieldType: "seoTitle",
+        keywords: [],
+        storeSettings: buildStoreSettings(),
+        collectionContext: buildCollectionContext(),
+      });
+    }, [collection, storeId, startGeneration, buildStoreSettings, buildCollectionContext]);
+
+    const handleGenerateSeoDescription = useCallback(() => {
+      startGeneration({
+        entityType: "collection",
+        collectionId: collection.id,
+        collectionName: collection.title,
+        shopId: storeId,
+        fieldType: "seoDescription",
+        keywords: [],
+        storeSettings: buildStoreSettings(),
+        collectionContext: buildCollectionContext(),
+      });
+    }, [collection, storeId, startGeneration, buildStoreSettings, buildCollectionContext]);
+
     // Expose methods to parent via ref
     useImperativeHandle(ref, () => ({
       submit: (mode: "save" | "publish") => {
@@ -118,14 +230,12 @@ export const CollectionForm = forwardRef<CollectionFormRef, CollectionFormProps>
         onDirtyChange?.(false);
       },
       getValues,
+      generateAll: () => {
+        handleGenerateDescription();
+        handleGenerateSeoTitle();
+        handleGenerateSeoDescription();
+      },
     }));
-
-    const handleGenerateClick = () => {
-      toast.info("Fonctionnalité à venir", {
-        description:
-          "La génération IA sera disponible dans une prochaine version.",
-      });
-    };
 
     const isDisabled = isSaving || isPublishing;
 
@@ -157,8 +267,9 @@ export const CollectionForm = forwardRef<CollectionFormRef, CollectionFormProps>
           value={watch("descriptionHtml") || ""}
           error={errors.descriptionHtml?.message}
           disabled={isDisabled}
+          isGenerating={isGenerating("description")}
           showCounter={false}
-          onGenerate={handleGenerateClick}
+          onGenerate={handleGenerateDescription}
         >
           <Controller
             name="descriptionHtml"
@@ -180,7 +291,8 @@ export const CollectionForm = forwardRef<CollectionFormRef, CollectionFormProps>
           value={watch("seoTitle") || ""}
           error={errors.seoTitle?.message}
           disabled={isDisabled}
-          onGenerate={handleGenerateClick}
+          isGenerating={isGenerating("seoTitle")}
+          onGenerate={handleGenerateSeoTitle}
         >
           <Textarea
             id="seoTitle"
@@ -196,7 +308,8 @@ export const CollectionForm = forwardRef<CollectionFormRef, CollectionFormProps>
           value={watch("seoDescription") || ""}
           error={errors.seoDescription?.message}
           disabled={isDisabled}
-          onGenerate={handleGenerateClick}
+          isGenerating={isGenerating("seoDescription")}
+          onGenerate={handleGenerateSeoDescription}
         >
           <Textarea
             id="seoDescription"

@@ -46,6 +46,7 @@ export interface ProductFormRef {
   submit: (mode: "save" | "publish") => void;
   reset: () => void;
   getValues: () => ProductFormSchema;
+  generateAll: () => void;
 }
 
 interface ProductFormProps {
@@ -108,6 +109,30 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
       }
     }, [generations.description.status, generations.description.result, generations.description.error, setValue]);
 
+    // Inject generated SEO title
+    useEffect(() => {
+      const gen = generations.seoTitle;
+      if (gen.status === "completed" && gen.result) {
+        setValue("seoTitle", gen.result, { shouldDirty: true });
+        toast.success("Titre SEO généré avec succès");
+      }
+      if (gen.status === "failed" && gen.error) {
+        toast.error("Échec de la génération du titre SEO", { description: gen.error });
+      }
+    }, [generations.seoTitle.status, generations.seoTitle.result, generations.seoTitle.error, setValue]);
+
+    // Inject generated SEO description
+    useEffect(() => {
+      const gen = generations.seoDescription;
+      if (gen.status === "completed" && gen.result) {
+        setValue("seoDescription", gen.result, { shouldDirty: true });
+        toast.success("Description SEO générée avec succès");
+      }
+      if (gen.status === "failed" && gen.error) {
+        toast.error("Échec de la génération de la description SEO", { description: gen.error });
+      }
+    }, [generations.seoDescription.status, generations.seoDescription.result, generations.seoDescription.error, setValue]);
+
     // Notify parent of dirty state changes
     useEffect(() => {
       onDirtyChange?.(isDirty);
@@ -167,7 +192,32 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
         onDirtyChange?.(false);
       },
       getValues,
+      generateAll: () => {
+        handleGenerateDescription();
+        handleGenerateSeoTitle();
+        handleGenerateSeoDescription();
+      },
     }));
+
+    const buildStoreSettings = useCallback(() => {
+      if (!settings) return null;
+      return {
+        nicheKeyword: settings.nicheKeyword,
+        nicheDescription: settings.nicheDescription,
+        language: settings.language,
+        productWordCount: settings.productWordCount,
+        customerPersona: settings.customerPersona,
+      };
+    }, [settings]);
+
+    const buildProductContext = useCallback(() => ({
+      title: product.title,
+      tags: product.tags || [],
+      vendor: product.vendor || null,
+      productType: product.productType || null,
+      price: Number(product.price),
+      currentDescription: getValues("descriptionHtml") || null,
+    }), [product, getValues]);
 
     const handleGenerateDescription = useCallback(() => {
       if (!settings) {
@@ -183,32 +233,34 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
         shopId: storeId,
         fieldType: "description",
         keywords: product.tags || [],
-        storeSettings: settings
-          ? {
-              nicheKeyword: settings.nicheKeyword,
-              nicheDescription: settings.nicheDescription,
-              language: settings.language,
-              productWordCount: settings.productWordCount,
-              customerPersona: settings.customerPersona,
-            }
-          : null,
-        productContext: {
-          title: product.title,
-          tags: product.tags || [],
-          vendor: product.vendor || null,
-          productType: product.productType || null,
-          price: Number(product.price),
-          currentDescription: getValues("descriptionHtml") || null,
-        },
+        storeSettings: buildStoreSettings(),
+        productContext: buildProductContext(),
       });
-    }, [product, storeId, settings, startGeneration, getValues]);
+    }, [product, storeId, settings, startGeneration, buildStoreSettings, buildProductContext]);
 
-    const handleGenerateComingSoon = () => {
-      toast.info("Fonctionnalité à venir", {
-        description:
-          "La génération IA de ce champ sera disponible dans une prochaine version.",
+    const handleGenerateSeoTitle = useCallback(() => {
+      startGeneration({
+        productId: product.id,
+        productName: product.title,
+        shopId: storeId,
+        fieldType: "seoTitle",
+        keywords: product.tags || [],
+        storeSettings: buildStoreSettings(),
+        productContext: buildProductContext(),
       });
-    };
+    }, [product, storeId, startGeneration, buildStoreSettings, buildProductContext]);
+
+    const handleGenerateSeoDescription = useCallback(() => {
+      startGeneration({
+        productId: product.id,
+        productName: product.title,
+        shopId: storeId,
+        fieldType: "seoDescription",
+        keywords: product.tags || [],
+        storeSettings: buildStoreSettings(),
+        productContext: buildProductContext(),
+      });
+    }, [product, storeId, startGeneration, buildStoreSettings, buildProductContext]);
 
     const isDisabled = isSaving || isPublishing;
 
@@ -264,7 +316,8 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
           value={watch("seoTitle") || ""}
           error={errors.seoTitle?.message}
           disabled={isDisabled}
-          onGenerate={handleGenerateComingSoon}
+          isGenerating={isGenerating("seoTitle")}
+          onGenerate={handleGenerateSeoTitle}
         >
           <Textarea
             id="seoTitle"
@@ -280,7 +333,8 @@ export const ProductForm = forwardRef<ProductFormRef, ProductFormProps>(
           value={watch("seoDescription") || ""}
           error={errors.seoDescription?.message}
           disabled={isDisabled}
-          onGenerate={handleGenerateComingSoon}
+          isGenerating={isGenerating("seoDescription")}
+          onGenerate={handleGenerateSeoDescription}
         >
           <Textarea
             id="seoDescription"

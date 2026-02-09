@@ -132,10 +132,11 @@ services:
   # Worker
   # ═══════════════════════════════════════════════
   worker:
+    deploy:
+      replicas: 3
     build:
       context: .
       dockerfile: backend/worker/Dockerfile
-    container_name: worker
     volumes:
       - ./backend/worker:/src/backend/worker
       - /src/backend/worker/node_modules

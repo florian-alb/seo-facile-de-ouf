@@ -7,6 +7,7 @@ export interface IStoreSettings {
   nicheDescription: string;
   language: string;
   productWordCount: number;
+  collectionWordCount?: number;
   customerPersona: string;
 }
 
@@ -19,10 +20,25 @@ export interface IProductContext {
   currentDescription: string | null;
 }
 
+export interface ICollectionContext {
+  title: string;
+  handle: string;
+  productsCount: number;
+  currentDescription: string | null;
+}
+
 export interface IGeneration extends Document {
-  // Infos produit
-  productId: string;
-  productName: string;
+  // Type d'entite
+  entityType: "product" | "collection";
+
+  // Infos produit (optionnel si collection)
+  productId?: string;
+  productName?: string;
+
+  // Infos collection (optionnel si produit)
+  collectionId?: string;
+  collectionName?: string;
+
   keywords: string[];
 
   // Type de champ a generer
@@ -43,6 +59,7 @@ export interface IGeneration extends Document {
   // Contexte pour le prompt IA
   storeSettings?: IStoreSettings;
   productContext?: IProductContext;
+  collectionContext?: ICollectionContext;
 
   // Métadonnées
   error?: string;
@@ -58,8 +75,15 @@ export interface IGeneration extends Document {
 
 const GenerationSchema = new Schema(
   {
-    productId: { type: String, required: true },
-    productName: { type: String, required: true },
+    entityType: {
+      type: String,
+      enum: ["product", "collection"],
+      default: "product",
+    },
+    productId: { type: String },
+    productName: { type: String },
+    collectionId: { type: String },
+    collectionName: { type: String },
     keywords: [{ type: String }],
 
     fieldType: {
@@ -87,6 +111,7 @@ const GenerationSchema = new Schema(
       nicheDescription: String,
       language: String,
       productWordCount: Number,
+      collectionWordCount: Number,
       customerPersona: String,
     },
 
@@ -96,6 +121,13 @@ const GenerationSchema = new Schema(
       vendor: String,
       productType: String,
       price: Number,
+      currentDescription: String,
+    },
+
+    collectionContext: {
+      title: String,
+      handle: String,
+      productsCount: Number,
       currentDescription: String,
     },
 
@@ -114,6 +146,8 @@ const GenerationSchema = new Schema(
 // Index pour les requêtes fréquentes
 GenerationSchema.index({ status: 1, createdAt: -1 });
 GenerationSchema.index({ userId: 1, shopId: 1 });
+GenerationSchema.index({ productId: 1, userId: 1, createdAt: -1 });
+GenerationSchema.index({ collectionId: 1, userId: 1, createdAt: -1 });
 
 export const Generation = mongoose.model<IGeneration>(
   "Generation",

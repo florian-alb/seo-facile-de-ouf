@@ -38,6 +38,7 @@ export async function connectRabbitMQ(): Promise<void> {
 export interface JobPayload {
   jobId: string;
   type: 'full_description' | 'meta_only' | 'slug_only' | 'description' | 'seoTitle' | 'seoDescription';
+  entityType?: 'product' | 'collection';
 }
  
 export async function publishJob(payload: JobPayload): Promise<boolean> {

@@ -372,6 +372,8 @@ export async function updateProduct(
       ...(data.tags !== undefined && { tags: data.tags }),
       ...(data.imageAlt !== undefined && { imageAlt: data.imageAlt }),
       ...(data.status !== undefined && { status: data.status }),
+      ...(data.seoTitle !== undefined && { seoTitle: data.seoTitle }),
+      ...(data.seoDescription !== undefined && { seoDescription: data.seoDescription }),
     },
   });
 
@@ -445,6 +447,8 @@ export async function publishProductToShopify(
       ...(data.tags !== undefined && { tags: data.tags }),
       ...(data.imageAlt !== undefined && { imageAlt: data.imageAlt }),
       ...(data.status !== undefined && { status: data.status }),
+      ...(data.seoTitle !== undefined && { seoTitle: data.seoTitle }),
+      ...(data.seoDescription !== undefined && { seoDescription: data.seoDescription }),
     },
   });
 
@@ -474,6 +478,12 @@ export async function publishProductToShopify(
       ...(data.handle !== undefined && { handle: data.handle }),
       ...(data.tags !== undefined && { tags: data.tags }),
       ...(data.status !== undefined && { status: data.status }),
+      ...((data.seoTitle !== undefined || data.seoDescription !== undefined) && {
+        seo: {
+          ...(data.seoTitle !== undefined && { title: data.seoTitle }),
+          ...(data.seoDescription !== undefined && { description: data.seoDescription }),
+        },
+      }),
     },
   };
 
@@ -508,5 +518,124 @@ export async function publishProductToShopify(
     product: finalProduct as ShopifyProduct,
     shopifyUpdatedAt,
     message: "Product published to Shopify successfully",
+  };
+}
+
+interface ShopifyGraphQLSingleProductResponse {
+  product: ShopifyGraphQLProductNode | null;
+}
+
+async function fetchSingleProductFromShopify(
+  shopifyDomain: string,
+  accessToken: string,
+  shopifyGid: string,
+): Promise<ShopifyGraphQLProductNode | null> {
+  const query = `
+    query GetProduct($id: ID!) {
+      product(id: $id) {
+        id
+        title
+        handle
+        descriptionHtml
+        status
+        vendor
+        productType
+        tags
+        seo {
+          description
+          title
+        }
+        collections(first: 10) {
+          edges {
+            node {
+              id
+              title
+            }
+          }
+        }
+        featuredImage {
+          url
+          altText
+        }
+        variants(first: 1) {
+          edges {
+            node {
+              id
+              price
+              compareAtPrice
+              sku
+              inventoryQuantity
+            }
+          }
+        }
+        createdAt
+        updatedAt
+        publishedAt
+      }
+    }
+  `;
+
+  const data = await shopifyAdminGraphQL<ShopifyGraphQLSingleProductResponse>(
+    shopifyDomain,
+    accessToken,
+    query,
+    { id: shopifyGid },
+  );
+
+  return data.product;
+}
+
+export async function syncSingleProduct(
+  storeId: string,
+  productId: string,
+  userId: string,
+): Promise<ProductUpdateResponse> {
+  const store = await prisma.store.findUnique({
+    where: { id: storeId },
+  });
+
+  if (!store) {
+    throw new Error("Store not found");
+  }
+
+  if (store.userId !== userId) {
+    throw new Error("Unauthorized: User does not own this store");
+  }
+
+  const existingProduct = await prisma.shopifyProduct.findFirst({
+    where: { id: productId, storeId },
+  });
+
+  if (!existingProduct) {
+    throw new Error("Product not found");
+  }
+
+  const credentials = await getStoreCredentials(storeId, userId);
+
+  if (!credentials) {
+    throw new Error("Store credentials not found");
+  }
+
+  const productNode = await fetchSingleProductFromShopify(
+    credentials.shopifyDomain,
+    credentials.accessToken,
+    existingProduct.shopifyGid,
+  );
+
+  if (!productNode) {
+    throw new Error("Product not found on Shopify");
+  }
+
+  const productData = transformProductNode(productNode, storeId);
+
+  const updatedProduct = await prisma.shopifyProduct.update({
+    where: { id: productId },
+    data: productData,
+  });
+
+  return {
+    success: true,
+    product: updatedProduct as ShopifyProduct,
+    message: "Product synced from Shopify successfully",
   };
 }

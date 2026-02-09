@@ -7,6 +7,7 @@ export interface IStoreSettings {
   nicheDescription: string;
   language: string;
   productWordCount: number;
+  collectionWordCount?: number;
   customerPersona: string;
 }
 
@@ -19,9 +20,19 @@ export interface IProductContext {
   currentDescription: string | null;
 }
 
+export interface ICollectionContext {
+  title: string;
+  handle: string;
+  productsCount: number;
+  currentDescription: string | null;
+}
+
 export interface IGeneration extends Document {
-  productId: string;
-  productName: string;
+  entityType: "product" | "collection";
+  productId?: string;
+  productName?: string;
+  collectionId?: string;
+  collectionName?: string;
   keywords: string[];
   fieldType: FieldType;
   status: "pending" | "processing" | "completed" | "failed";
@@ -34,6 +45,7 @@ export interface IGeneration extends Document {
   };
   storeSettings?: IStoreSettings;
   productContext?: IProductContext;
+  collectionContext?: ICollectionContext;
   error?: string;
   retryCount: number;
   userId: string;
@@ -45,8 +57,15 @@ export interface IGeneration extends Document {
 
 const GenerationSchema = new Schema(
   {
-    productId: { type: String, required: true },
-    productName: { type: String, required: true },
+    entityType: {
+      type: String,
+      enum: ["product", "collection"],
+      default: "product",
+    },
+    productId: { type: String },
+    productName: { type: String },
+    collectionId: { type: String },
+    collectionName: { type: String },
     keywords: [{ type: String }],
     fieldType: {
       type: String,
@@ -70,6 +89,7 @@ const GenerationSchema = new Schema(
       nicheDescription: String,
       language: String,
       productWordCount: Number,
+      collectionWordCount: Number,
       customerPersona: String,
     },
     productContext: {
@@ -78,6 +98,12 @@ const GenerationSchema = new Schema(
       vendor: String,
       productType: String,
       price: Number,
+      currentDescription: String,
+    },
+    collectionContext: {
+      title: String,
+      handle: String,
+      productsCount: Number,
       currentDescription: String,
     },
     error: String,

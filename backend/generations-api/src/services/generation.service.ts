@@ -27,3 +27,47 @@ export async function getById(id: string, userId: string) {
     );
   }
 }
+
+export async function getByProductId(productId: string, userId: string) {
+  try {
+    return await Generation.find({
+      productId,
+      userId,
+      entityType: "product",
+      status: "completed",
+    })
+      .sort({ createdAt: -1 })
+      .select(
+        "_id entityType productId productName fieldType status content createdAt completedAt"
+      )
+      .lean();
+  } catch (error: unknown) {
+    throw new Error(
+      `Failed to get generations by productId: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}
+
+export async function getByCollectionId(collectionId: string, userId: string) {
+  try {
+    return await Generation.find({
+      collectionId,
+      userId,
+      entityType: "collection",
+      status: "completed",
+    })
+      .sort({ createdAt: -1 })
+      .select(
+        "_id entityType collectionId collectionName fieldType status content createdAt completedAt"
+      )
+      .lean();
+  } catch (error: unknown) {
+    throw new Error(
+      `Failed to get generations by collectionId: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
+}

@@ -89,6 +89,8 @@ export interface ProductUpdateInput {
   tags?: string[];
   imageAlt?: string;
   status?: ProductStatus;
+  seoTitle?: string;
+  seoDescription?: string;
 }
 
 export interface ProductUpdateResponse {
