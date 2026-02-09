@@ -14,6 +14,7 @@ export function useShopifyCollection(storeId: string, collectionId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchCollection = useCallback(async () => {
@@ -99,14 +100,41 @@ export function useShopifyCollection(storeId: string, collectionId: string) {
     [storeId, collectionId]
   );
 
+  const syncCollection = useCallback(async () => {
+    setIsSyncing(true);
+    setError(null);
+
+    try {
+      const response = await apiFetch<CollectionUpdateResponse>(
+        `/shops/${storeId}/collections/${collectionId}/sync`,
+        { method: "POST" }
+      );
+
+      setCollection(response.collection);
+      return response;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to sync collection");
+      }
+      console.error("Failed to sync collection:", err);
+      throw err;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [storeId, collectionId]);
+
   return {
     collection,
     isLoading,
     isSaving,
     isPublishing,
+    isSyncing,
     error,
     fetchCollection,
     updateCollection,
     publishCollection,
+    syncCollection,
   };
 }

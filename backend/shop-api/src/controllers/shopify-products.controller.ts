@@ -166,6 +166,46 @@ export async function updateProduct(req: Request, res: Response) {
   }
 }
 
+export async function syncSingleProduct(req: Request, res: Response) {
+  try {
+    const shopId = Array.isArray(req.params.shopId)
+      ? req.params.shopId[0]
+      : req.params.shopId;
+    const productId = Array.isArray(req.params.productId)
+      ? req.params.productId[0]
+      : req.params.productId;
+    const userId = req.userId;
+
+    if (!userId) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const result = await productsService.syncSingleProduct(
+      shopId,
+      productId,
+      userId
+    );
+    res.json(result);
+  } catch (error) {
+    console.error("Error syncing product:", error);
+
+    if (error instanceof Error) {
+      if (
+        error.message === "Store not found" ||
+        error.message === "Product not found" ||
+        error.message === "Product not found on Shopify"
+      ) {
+        return res.status(404).json({ error: error.message });
+      }
+      if (error.message.includes("Unauthorized")) {
+        return res.status(403).json({ error: error.message });
+      }
+    }
+
+    res.status(500).json({ error: "Failed to sync product" });
+  }
+}
+
 export async function publishProduct(req: Request, res: Response) {
   try {
     const shopId = Array.isArray(req.params.shopId)

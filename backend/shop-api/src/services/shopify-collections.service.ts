@@ -382,3 +382,106 @@ export async function publishCollectionToShopify(
     message: "Collection published to Shopify successfully",
   };
 }
+
+interface ShopifyGraphQLSingleCollectionResponse {
+  collection: ShopifyGraphQLCollectionNode | null;
+}
+
+async function fetchSingleCollectionFromShopify(
+  shopifyDomain: string,
+  accessToken: string,
+  shopifyGid: string,
+): Promise<ShopifyGraphQLCollectionNode | null> {
+  const query = `
+    query GetCollection($id: ID!) {
+      collection(id: $id) {
+        id
+        title
+        handle
+        descriptionHtml
+        image {
+          url
+          altText
+        }
+        seo {
+          description
+          title
+        }
+        productsCount {
+          count
+        }
+        updatedAt
+      }
+    }
+  `;
+
+  const data = await shopifyAdminGraphQL<ShopifyGraphQLSingleCollectionResponse>(
+    shopifyDomain,
+    accessToken,
+    query,
+    { id: shopifyGid },
+  );
+
+  return data.collection;
+}
+
+export async function syncSingleCollection(
+  storeId: string,
+  collectionId: string,
+  userId: string,
+): Promise<CollectionUpdateResponse> {
+  const store = await prisma.store.findFirst({
+    where: { id: storeId, userId },
+  });
+
+  if (!store) {
+    throw new Error("Store not found or access denied");
+  }
+
+  const existingCollection = await prisma.shopifyCollection.findFirst({
+    where: { id: collectionId, storeId },
+  });
+
+  if (!existingCollection) {
+    throw new Error("Collection not found");
+  }
+
+  const credentials = await getStoreCredentials(storeId, userId);
+
+  if (!credentials) {
+    throw new Error("Store credentials not found");
+  }
+
+  const collectionNode = await fetchSingleCollectionFromShopify(
+    credentials.shopifyDomain,
+    credentials.accessToken,
+    existingCollection.shopifyGid,
+  );
+
+  if (!collectionNode) {
+    throw new Error("Collection not found on Shopify");
+  }
+
+  const collectionData = transformCollectionNode(collectionNode, storeId);
+
+  const updatedCollection = await prisma.shopifyCollection.update({
+    where: { id: collectionId },
+    data: {
+      title: collectionData.title,
+      handle: collectionData.handle,
+      descriptionHtml: collectionData.descriptionHtml,
+      imageUrl: collectionData.imageUrl,
+      imageAlt: collectionData.imageAlt,
+      seoDescription: collectionData.seoDescription,
+      seoTitle: collectionData.seoTitle,
+      productsCount: collectionData.productsCount,
+      shopifyUpdatedAt: collectionData.shopifyUpdatedAt,
+    },
+  });
+
+  return {
+    success: true,
+    collection: updatedCollection as ShopifyCollection,
+    message: "Collection synced from Shopify successfully",
+  };
+}

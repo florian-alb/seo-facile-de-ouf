@@ -21,6 +21,10 @@ router.patch(
   productsController.updateProduct
 );
 router.post(
+  "/shops/:shopId/products/:productId/sync",
+  productsController.syncSingleProduct
+);
+router.post(
   "/shops/:shopId/products/:productId/publish",
   productsController.publishProduct
 );

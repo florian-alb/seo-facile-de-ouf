@@ -24,6 +24,10 @@ router.patch(
   collectionsController.updateCollection
 );
 router.post(
+  "/shops/:shopId/collections/:collectionId/sync",
+  collectionsController.syncSingleCollection
+);
+router.post(
   "/shops/:shopId/collections/:collectionId/publish",
   collectionsController.publishCollection
 );

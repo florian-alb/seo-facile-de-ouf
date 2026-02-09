@@ -14,6 +14,7 @@ export function useShopifyProduct(storeId: string, productId: string) {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchProduct = useCallback(async () => {
@@ -99,14 +100,41 @@ export function useShopifyProduct(storeId: string, productId: string) {
     [storeId, productId]
   );
 
+  const syncProduct = useCallback(async () => {
+    setIsSyncing(true);
+    setError(null);
+
+    try {
+      const response = await apiFetch<ProductUpdateResponse>(
+        `/shops/${storeId}/products/${productId}/sync`,
+        { method: "POST" }
+      );
+
+      setProduct(response.product);
+      return response;
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Failed to sync product");
+      }
+      console.error("Failed to sync product:", err);
+      throw err;
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [storeId, productId]);
+
   return {
     product,
     isLoading,
     isSaving,
     isPublishing,
+    isSyncing,
     error,
     fetchProduct,
     updateProduct,
     publishProduct,
+    syncProduct,
   };
 }

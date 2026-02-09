@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 import { useShopifyCollection } from "@/hooks/use-shopify-collection";
@@ -42,10 +42,12 @@ export default function CollectionDetailPage() {
     isLoading,
     isSaving,
     isPublishing,
+    isSyncing,
     error,
     fetchCollection,
     updateCollection,
     publishCollection,
+    syncCollection,
   } = useShopifyCollection(storeId, collectionId);
 
   useEffect(() => {
@@ -138,6 +140,16 @@ export default function CollectionDetailPage() {
 
   const handleActionGenerate = () => {
     formRef.current?.generateAll();
+  };
+
+  const handleSync = async () => {
+    try {
+      await syncCollection();
+      formRef.current?.reset();
+      toast.success("Collection synchronisée depuis Shopify");
+    } catch {
+      toast.error("Erreur lors de la synchronisation");
+    }
   };
 
   const handleConfirmNavigation = () => {
@@ -255,6 +267,15 @@ export default function CollectionDetailPage() {
               <p className="text-sm text-muted-foreground">{collection.handle}</p>
             </div>
           </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSync}
+            disabled={isSyncing || isDirty}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
+            {isSyncing ? "Synchronisation..." : "Synchroniser"}
+          </Button>
         </div>
 
         {/* Main content */}
