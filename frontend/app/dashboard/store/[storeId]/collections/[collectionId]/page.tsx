@@ -137,7 +137,7 @@ export default function CollectionDetailPage() {
   };
 
   const handleActionGenerate = () => {
-    // Future: Generate all fields with AI
+    formRef.current?.generateAll();
   };
 
   const handleConfirmNavigation = () => {
@@ -264,6 +264,7 @@ export default function CollectionDetailPage() {
             <CollectionForm
               ref={formRef}
               collection={collection}
+              storeId={storeId}
               onSave={handleSave}
               onPublish={handlePublish}
               onDirtyChange={handleDirtyChange}

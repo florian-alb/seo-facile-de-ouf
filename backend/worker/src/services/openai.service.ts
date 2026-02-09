@@ -1,17 +1,31 @@
-// backend/worker/src/services/openai.service.ts
-import OpenAI from 'openai';
+import OpenAI from "openai";
+import { buildProductDescriptionSystemPrompt } from "../prompts/products/description-system-prompt";
+import { buildProductDescriptionUserPrompt } from "../prompts/products/description-user-prompt";
+import { buildProductMetaPrompt } from "../prompts/products/meta-prompt";
+import { buildCollectionDescriptionSystemPrompt } from "../prompts/collections/description-system-prompt";
+import { buildCollectionDescriptionUserPrompt } from "../prompts/collections/description-user-prompt";
+import { buildCollectionMetaPrompt } from "../prompts/collections/meta-prompt";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
+export const LANGUAGE_MAP: Record<string, string> = {
+  fr: "French",
+  en: "English",
+  es: "Spanish",
+  de: "German",
+  it: "Italian",
+};
+
 // ═══════════════════════════════════════════════════════════
-// Meta tags generation (existing)
+// Product meta tags generation
 // ═══════════════════════════════════════════════════════════
 
 interface MetaInput {
   productName: string;
   keywords: string[];
+  languageName: string;
 }
 
 interface MetaContent {
@@ -21,30 +35,25 @@ interface MetaContent {
 }
 
 export async function generateWithOpenAI(
-  input: MetaInput
+  input: MetaInput,
 ): Promise<MetaContent> {
-
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
-    response_format: { type: 'json_object' },
-    messages: [{
-      role: 'user',
-      content: `Génère les meta tags SEO pour ce produit e-commerce:
-
-Produit: ${input.productName}
-Mots-clés: ${input.keywords.join(', ')}
-
-Réponds en JSON:
-{
-  "metaTitle": "max 60 caractères, inclure mot-clé principal",
-  "metaDescription": "max 155 caractères, call-to-action",
-  "slug": "url-slug-optimise"
-}`
-    }]
+    model: "gpt-4o",
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "user",
+        content: buildProductMetaPrompt({
+          productName: input.productName,
+          keywords: input.keywords,
+          languageName: input.languageName,
+        }),
+      },
+    ],
   });
 
   const content = response.choices[0].message.content;
-  if (!content) throw new Error('Empty response from OpenAI');
+  if (!content) throw new Error("Empty response from OpenAI");
 
   return JSON.parse(content);
 }
@@ -73,71 +82,148 @@ interface DescriptionInput {
   } | null;
 }
 
-const LANGUAGE_MAP: Record<string, string> = {
-  fr: 'French',
-  en: 'English',
-  es: 'Spanish',
-  de: 'German',
-  it: 'Italian',
-};
-
 export async function generateDescriptionWithOpenAI(
-  input: DescriptionInput
+  input: DescriptionInput,
 ): Promise<string> {
   const settings = input.storeSettings;
   const ctx = input.productContext;
 
-  const language = settings?.language || 'fr';
-  const languageName = LANGUAGE_MAP[language] || 'French';
+  const language = settings?.language || "fr";
+  const languageName = LANGUAGE_MAP[language] || "French";
   const wordCount = settings?.productWordCount || 400;
 
-  const systemPrompt = `You are an expert e-commerce SEO copywriter. Write product descriptions that are:
-- SEO-optimized with natural keyword integration (no keyword stuffing)
-- Compelling, conversion-focused, and engaging
-- Written in valid, well-structured HTML using these tags: <h2>, <h3>, <p>, <ul>, <li>, <strong>, <em>
-- Organized with clear sections: key features, benefits, use cases, specifications if relevant
-- Adapted to the target audience${settings?.customerPersona ? `: ${settings.customerPersona}` : ''}
-${settings?.nicheKeyword ? `- Within the niche: ${settings.nicheKeyword}` : ''}
-${settings?.nicheDescription ? `- Niche context: ${settings.nicheDescription}` : ''}
+  const systemPrompt = buildProductDescriptionSystemPrompt({
+    customerPersona: settings?.customerPersona,
+    nicheKeyword: settings?.nicheKeyword,
+    nicheDescription: settings?.nicheDescription,
+    languageName,
+    wordCount,
+  });
 
-IMPORTANT RULES:
-- Write in ${languageName}
-- Target approximately ${wordCount} words
-- Output ONLY the HTML content, no markdown code fences, no explanations, no wrapping
-- Do NOT include <html>, <head>, <body> tags - only the content HTML
-- Start directly with the first <h2> or <p> tag`;
-
-  const userPromptParts = [`Write an SEO-optimized product description for:`];
-  userPromptParts.push(`\nProduct name: ${input.productName}`);
-
-  if (ctx?.vendor) userPromptParts.push(`Brand/Vendor: ${ctx.vendor}`);
-  if (ctx?.productType) userPromptParts.push(`Category: ${ctx.productType}`);
-  if (ctx?.price) userPromptParts.push(`Price: ${ctx.price}`);
-  if (ctx?.tags?.length) userPromptParts.push(`Tags: ${ctx.tags.join(', ')}`);
-  if (input.keywords?.length) userPromptParts.push(`Target SEO keywords: ${input.keywords.join(', ')}`);
-  if (ctx?.currentDescription) {
-    const stripped = ctx.currentDescription.replace(/<[^>]*>/g, '').substring(0, 500);
-    if (stripped.trim()) {
-      userPromptParts.push(`\nCurrent description (improve and expand this):\n${stripped}`);
-    }
-  }
+  const userPrompt = buildProductDescriptionUserPrompt({
+    productName: input.productName,
+    keywords: input.keywords,
+    vendor: ctx?.vendor,
+    productType: ctx?.productType,
+    price: ctx?.price,
+    tags: ctx?.tags,
+    currentDescription: ctx?.currentDescription,
+  });
 
   const response = await openai.chat.completions.create({
-    model: 'gpt-4o',
+    model: "gpt-4o",
     messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user', content: userPromptParts.join('\n') },
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
     ],
     temperature: 0.7,
     max_tokens: 2000,
   });
 
   const content = response.choices[0].message.content;
-  if (!content) throw new Error('Empty response from OpenAI');
+  if (!content) throw new Error("Empty response from OpenAI");
 
   // Strip markdown code fences if OpenAI wraps the HTML
   return content
-    .replace(/^```html?\n?/i, '')
-    .replace(/\n?```$/i, '')
+    .replace(/^```html?\n?/i, "")
+    .replace(/\n?```$/i, "")
     .trim();
+}
+
+// ═══════════════════════════════════════════════════════════
+// Collection description generation
+// ═══════════════════════════════════════════════════════════
+
+interface CollectionDescriptionInput {
+  collectionName: string;
+  keywords: string[];
+  storeSettings?: {
+    nicheKeyword: string;
+    nicheDescription: string;
+    language: string;
+    productWordCount: number;
+    collectionWordCount?: number;
+    customerPersona: string;
+  } | null;
+  collectionContext?: {
+    title: string;
+    handle: string;
+    productsCount: number;
+    currentDescription: string | null;
+  } | null;
+}
+
+export async function generateCollectionDescriptionWithOpenAI(
+  input: CollectionDescriptionInput,
+): Promise<string> {
+  const settings = input.storeSettings;
+  const ctx = input.collectionContext;
+
+  const language = settings?.language || "fr";
+  const languageName = LANGUAGE_MAP[language] || "French";
+  const wordCount = settings?.collectionWordCount || 800;
+
+  const systemPrompt = buildCollectionDescriptionSystemPrompt({
+    customerPersona: settings?.customerPersona,
+    nicheKeyword: settings?.nicheKeyword,
+    nicheDescription: settings?.nicheDescription,
+    languageName,
+    wordCount,
+  });
+
+  const userPrompt = buildCollectionDescriptionUserPrompt({
+    collectionName: input.collectionName,
+    keywords: input.keywords,
+    handle: ctx?.handle,
+    productsCount: ctx?.productsCount,
+    currentDescription: ctx?.currentDescription,
+  });
+
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    temperature: 0.7,
+    max_tokens: 3000,
+  });
+
+  const content = response.choices[0].message.content;
+  if (!content) throw new Error("Empty response from OpenAI");
+
+  return content
+    .replace(/^```html?\n?/i, "")
+    .replace(/\n?```$/i, "")
+    .trim();
+}
+
+// ═══════════════════════════════════════════════════════════
+// Collection meta tags generation
+// ═══════════════════════════════════════════════════════════
+
+export async function generateCollectionMetaWithOpenAI(input: {
+  collectionName: string;
+  keywords: string[];
+  languageName: string;
+}): Promise<MetaContent> {
+  const response = await openai.chat.completions.create({
+    model: "gpt-4o",
+    response_format: { type: "json_object" },
+    messages: [
+      {
+        role: "user",
+        content: buildCollectionMetaPrompt({
+          collectionName: input.collectionName,
+          keywords: input.keywords,
+          languageName: input.languageName,
+        }),
+      },
+    ],
+  });
+
+  const content = response.choices[0].message.content;
+  if (!content) throw new Error("Empty response from OpenAI");
+
+  return JSON.parse(content);
 }

@@ -372,6 +372,8 @@ export async function updateProduct(
       ...(data.tags !== undefined && { tags: data.tags }),
       ...(data.imageAlt !== undefined && { imageAlt: data.imageAlt }),
       ...(data.status !== undefined && { status: data.status }),
+      ...(data.seoTitle !== undefined && { seoTitle: data.seoTitle }),
+      ...(data.seoDescription !== undefined && { seoDescription: data.seoDescription }),
     },
   });
 
@@ -445,6 +447,8 @@ export async function publishProductToShopify(
       ...(data.tags !== undefined && { tags: data.tags }),
       ...(data.imageAlt !== undefined && { imageAlt: data.imageAlt }),
       ...(data.status !== undefined && { status: data.status }),
+      ...(data.seoTitle !== undefined && { seoTitle: data.seoTitle }),
+      ...(data.seoDescription !== undefined && { seoDescription: data.seoDescription }),
     },
   });
 
@@ -474,6 +478,12 @@ export async function publishProductToShopify(
       ...(data.handle !== undefined && { handle: data.handle }),
       ...(data.tags !== undefined && { tags: data.tags }),
       ...(data.status !== undefined && { status: data.status }),
+      ...((data.seoTitle !== undefined || data.seoDescription !== undefined) && {
+        seo: {
+          ...(data.seoTitle !== undefined && { title: data.seoTitle }),
+          ...(data.seoDescription !== undefined && { description: data.seoDescription }),
+        },
+      }),
     },
   };
 

@@ -1,7 +1,6 @@
 "use client";
 
 import { Sparkles, Save, Upload, Undo2 } from "lucide-react";
-import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -35,14 +34,6 @@ export function ActionCard({
 }: ActionCardProps) {
   const isDisabled = isSaving || isPublishing;
 
-  const handleGenerateClick = () => {
-    toast.info("Fonctionnalité à venir", {
-      description:
-        "La génération IA de tous les champs sera disponible dans une prochaine version.",
-    });
-    onGenerate();
-  };
-
   return (
     <Card
       size="sm"
@@ -61,7 +52,7 @@ export function ActionCard({
           type="button"
           variant="outline"
           className="w-full justify-start"
-          onClick={handleGenerateClick}
+          onClick={onGenerate}
           disabled={isDisabled}
         >
           <Sparkles className="h-4 w-4 mr-2" />

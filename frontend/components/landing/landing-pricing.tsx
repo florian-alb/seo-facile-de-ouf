@@ -31,13 +31,13 @@ const plans = [
   },
   {
     name: "Pro",
-    price: "29€",
+    price: "49€",
     period: "/mois",
     description: "Pour les marchands qui veulent scaler leur SEO.",
     popular: true,
     features: [
       "Générations illimitées",
-      "5 boutiques Shopify",
+      "1 boutique Shopify",
       "Génération en masse (50 produits)",
       "Streaming temps réel",
       "Support prioritaire",
@@ -47,7 +47,7 @@ const plans = [
   },
   {
     name: "Agence",
-    price: "79€",
+    price: "109€",
     period: "/mois",
     description: "Pour les agences SEO et les marchands multi-marques.",
     popular: false,
@@ -87,11 +87,11 @@ export default function LandingPricing() {
             <Card
               key={plan.name}
               className={
-                plan.popular ? "relative ring-2 ring-primary" : undefined
+                plan.popular ? "relative ring-2 ring-primary overflow-visible" : undefined
               }
             >
               {plan.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-50">
                   <Badge>Populaire</Badge>
                 </div>
               )}

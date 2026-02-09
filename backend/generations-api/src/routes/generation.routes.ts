@@ -21,26 +21,41 @@ router.get("/:id", generationsController.getGenerationById);
 // ═══════════════════════════════════════════════════════════
 router.post("/generate", async (req: GatewayAuthenticatedRequest, res: Response) => {
   try {
-    const { productId, productName, keywords, shopId, fieldType, storeSettings, productContext } = req.body;
+    const {
+      productId, productName, keywords, shopId, fieldType,
+      storeSettings, productContext,
+      entityType, collectionId, collectionName, collectionContext,
+    } = req.body;
     const userId = req.userId;
 
-    // Validation
-    if (!productId || !productName || !shopId) {
+    const resolvedEntityType = entityType || "product";
+
+    // Validation conditionnelle selon le type d'entite
+    if (resolvedEntityType === "product" && (!productId || !productName || !shopId)) {
       return res.status(400).json({
         error: "Missing required fields: productId, productName, shopId",
+      });
+    }
+    if (resolvedEntityType === "collection" && (!collectionId || !collectionName || !shopId)) {
+      return res.status(400).json({
+        error: "Missing required fields: collectionId, collectionName, shopId",
       });
     }
 
     // 1. Créer le job en base
     const generation = await Generation.create({
-      productId,
-      productName,
+      entityType: resolvedEntityType,
+      productId: productId || undefined,
+      productName: productName || undefined,
+      collectionId: collectionId || undefined,
+      collectionName: collectionName || undefined,
       keywords: keywords || [],
       userId,
       shopId,
       fieldType: fieldType || "full_description",
       storeSettings: storeSettings || undefined,
       productContext: productContext || undefined,
+      collectionContext: collectionContext || undefined,
       status: "pending",
     });
 
@@ -48,6 +63,7 @@ router.post("/generate", async (req: GatewayAuthenticatedRequest, res: Response)
     await publishJob({
       jobId: generation._id.toString(),
       type: fieldType || "full_description",
+      entityType: resolvedEntityType,
     });
 
     // 3. Répondre immédiatement avec le jobId
@@ -226,7 +242,7 @@ router.get("/jobs", async (req: Request, res: Response) => {
   const jobs = await Generation.find(filter)
     .sort({ createdAt: -1 })
     .limit(Number(limit))
-    .select("productId productName status createdAt completedAt");
+    .select("entityType productId productName collectionId collectionName status createdAt completedAt");
 
   res.json({ jobs });
 });

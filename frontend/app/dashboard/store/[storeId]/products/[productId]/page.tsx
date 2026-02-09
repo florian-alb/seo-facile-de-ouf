@@ -107,6 +107,8 @@ export default function ProductDetailPage() {
         tags: data.tags,
         imageAlt: data.imageAlt || undefined,
         status: data.status,
+        seoTitle: data.seoTitle || undefined,
+        seoDescription: data.seoDescription || undefined,
       });
       toast.success("Produit enregistré");
     } catch {
@@ -122,6 +124,8 @@ export default function ProductDetailPage() {
         tags: data.tags,
         imageAlt: data.imageAlt || undefined,
         status: data.status,
+        seoTitle: data.seoTitle || undefined,
+        seoDescription: data.seoDescription || undefined,
       });
       toast.success("Produit publié sur Shopify");
     } catch {
@@ -143,7 +147,7 @@ export default function ProductDetailPage() {
   };
 
   const handleActionGenerate = () => {
-    // Future: Generate all fields with AI
+    formRef.current?.generateAll();
   };
 
   const handleConfirmNavigation = () => {

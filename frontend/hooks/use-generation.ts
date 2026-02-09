@@ -17,18 +17,11 @@ interface GenerationState {
 }
 
 interface StartGenerationParams {
-  productId: string;
-  productName: string;
-  shopId: string;
-  fieldType: FieldType;
-  keywords?: string[];
-  storeSettings?: {
-    nicheKeyword: string;
-    nicheDescription: string;
-    language: string;
-    productWordCount: number;
-    customerPersona: string;
-  } | null;
+  entityType?: "product" | "collection";
+
+  // Product fields (optional when entityType is "collection")
+  productId?: string;
+  productName?: string;
   productContext?: {
     title: string;
     tags: string[];
@@ -37,6 +30,29 @@ interface StartGenerationParams {
     price: number;
     currentDescription: string | null;
   };
+
+  // Collection fields (optional when entityType is "product")
+  collectionId?: string;
+  collectionName?: string;
+  collectionContext?: {
+    title: string;
+    handle: string;
+    productsCount: number;
+    currentDescription: string | null;
+  };
+
+  // Common fields
+  shopId: string;
+  fieldType: FieldType;
+  keywords?: string[];
+  storeSettings?: {
+    nicheKeyword: string;
+    nicheDescription: string;
+    language: string;
+    productWordCount: number;
+    collectionWordCount?: number;
+    customerPersona: string;
+  } | null;
 }
 
 interface GenerateResponse {
@@ -120,13 +136,17 @@ export function useFieldGeneration() {
           {
             method: "POST",
             body: JSON.stringify({
+              entityType: params.entityType || "product",
               productId: params.productId,
               productName: params.productName,
+              collectionId: params.collectionId,
+              collectionName: params.collectionName,
               shopId: params.shopId,
               fieldType: params.fieldType,
               keywords: params.keywords || [],
               storeSettings: params.storeSettings || undefined,
               productContext: params.productContext || undefined,
+              collectionContext: params.collectionContext || undefined,
             }),
           },
         );
