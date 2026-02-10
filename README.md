@@ -1,24 +1,24 @@
-# SEO FACILE DE OUF
+# EasySeo
 
-**Plateforme SaaS d'automatisation de contenu SEO pour e-commerçants, basée sur une architecture Microservices.**
+**Plateforme SaaS d'automatisation de contenu SEO pour e-commerçants Shopify, basée sur une architecture Microservices.**
 
 ## 📖 À propos du projet
 
-Ce projet est un SaaS B2B conçu pour aider les e-commerçants (Shopify, WooCommerce) à rédiger des fiches produits optimisées pour le référencement (SEO) en quelques secondes grâce à l'Intelligence Artificielle.
+EasySeo est un SaaS B2B qui aide les e-commerçants Shopify à générer des fiches produits et des descriptions de collections optimisées pour le référencement (SEO) en quelques secondes grâce à l'Intelligence Artificielle.
 
-Contrairement aux solutions classiques de rédaction manuelle, cette application permet de générer, stocker et gérer des centaines de descriptions uniques et optimisées.
+Le marchand connecte sa boutique Shopify, configure ses paramètres SEO (niche, langue, persona client), et l'IA génère des descriptions, meta-titres, meta-descriptions et slugs optimisés pour Google.
 
 ### 🎯 Pourquoi cet outil ?
 
 La rédaction de fiches produits est la tâche la plus chronophage et la moins aimée des e-commerçants :
 
-1.  **Le problème du temps :** Rédiger une bonne fiche prend 20 à 60 minutes. Pour une boutique de 100 produits, cela représente des semaines de travail.
-2.  **Le problème du SEO :** Sans optimisation sémantique, une boutique est invisible sur Google.
-3.  **Le problème du coût :** Embaucher des rédacteurs coûte cher.
+1. **Le problème du temps :** Rédiger une bonne fiche prend 20 à 60 minutes. Pour une boutique de 200 produits, cela représente des semaines de travail.
+2. **Le problème du SEO :** Sans optimisation sémantique, une boutique est invisible sur Google.
+3. **Le problème du coût :** Embaucher des rédacteurs coûte cher.
 
-**Notre solution :** Une interface simple où le marchand rentre ses mots-clés, et notre moteur asynchrone génère un contenu vendeur et optimisé SEO instantanément.
+**Notre solution :** Une interface simple où le marchand sélectionne ses produits, clique sur "Générer", et notre pipeline asynchrone (RabbitMQ + Workers) produit un contenu vendeur et optimisé SEO en temps réel via SSE.
 
-### Concurrence:
+### Concurrence
 
 - https://describely.ai/
 - https://www.kaatalog.ai/
@@ -26,88 +26,76 @@ La rédaction de fiches produits est la tâche la plus chronophage et la moins a
 
 ## 🛠 Stack Technique
 
-- **TypeScript** - Typage statique
-- **Express** - Framework web
-- **MongoDB** - Base de données NoSQL
-- **Mongoose** - ODM pour MongoDB
-- **http-proxy-middleware** - Proxy pour API Gateway
-- **tsx** - Exécution TypeScript avec hot-reload
-- **Docker** - Conteneurisation
-- **pnpm** - Gestionnaire de paquets
+### Backend
 
-Ce projet met en œuvre une architecture **Microservices** moderne et typée :
+- **Express 5.1** avec **TypeScript 5.7** - API REST pour chaque microservice
+- **Prisma 7.0** - ORM typé pour PostgreSQL
+- **Mongoose 9.0** - ODM pour MongoDB
+- **Better Auth** - Authentification (JWT, OAuth, sessions)
+- **@shopify/shopify-api** - Intégration Shopify GraphQL
+- **amqplib** - Client RabbitMQ pour le messaging asynchrone
+- **http-proxy-middleware** - Reverse proxy pour l'API Gateway
 
-- **Backend :** Node.js avec **Express** & **TypeScript**.
-- **Communication :** Messaging asynchrone avec **RabbitMQ**.
-- **Persistence Hybride (Polyglot Persistence) :**
-  - **PostgreSQL + Prisma :** Données relationnelles critiques (Utilisateurs, Auth, Crédits, Tokens Shopify).
-  - **MongoDB + Mongoose :** Données non structurées (Historique des générations IA, Logs, Contenu riche).
-- **Intelligence Artificielle :** OpenAI API (GPT-5) + Claude (sonnet 4.5)
-- **Frontend :** Next.js / React.
-- **UX :** Shad/cn / tailwind
+### Frontend
 
-## 🧠 Justification des choix techniques
+- **Next.js 16** avec **React 19** - App Router, SSR
+- **Tailwind CSS 4** - Classes utilitaires
+- **Shadcn/ui** - Composants accessibles (Radix primitives)
+- **Tiptap 3** - Éditeur de texte riche WYSIWYG
+- **@tanstack/react-table** - Tables de données interactives
+- **React Hook Form** + **Zod** - Formulaires et validation
+- **Recharts** - Graphiques pour le dashboard
+- **next-themes** - Thème sombre / clair
+- **Sonner** - Notifications toast
 
-### **TypeScript**
+### Intelligence Artificielle
 
-TypeScript apporte une sécurité de typage.Il permet de réduire les erreurs, améliore la maintenabilité et permet un partage cohérent des modèles entre backend et frontend. Il offre une base plus fiable que JavaScript.
+- **OpenAI GPT-4o** - Génération de descriptions, meta-tags, slugs
+- **Anthropic Claude** - Support multi-IA pour les contenus longs
 
----
+### Infrastructure
 
-### **RabbitMQ**
-
-RabbitMQ est utilisé comme broker de messages pour gérer les tâches longues (génération IA).
-Il permet un traitement **asynchrone**, une bonne **scalabilité**, et une gestion propre des files d’attente et des _workers_ sans bloquer l’API principale.
-
----
-
-### **Persistence Hybride : MongoDB + PostgreSQL**
-
-- **PostgreSQL** : idéal pour les données critiques, structurées et relationnelles (authentification, crédits, intégrations Shopify…).
-- **MongoDB** : parfait pour les données flexibles et volumineuses comme les contenus générés par l’IA.
-
-Cette approche _polyglot persistence_ permet d’utiliser chaque base pour ce qu’elle fait le mieux et optimise performances + coût.
-
----
-
-### **Next.js**
-
-Next.js est choisi pour son écosystème moderne, son rendu serveur (SSR) et sa simplicité.
-Next offre un excellent DX, un routage intégré et une intégration naturelle avec TypeScript et React.
-Contrairement à Angular, Next est plus adapté pour notre projet car moins lourd et structurant pour un projet "simple".
-
----
-
-### **GPT-5 et Claude (via API IA)**
-
-L'application utilise GPT-5 et Claude Sonnet pour générer des descriptions produits riches et optimisées SEO.
-Claude est meilleur dans la rédaction "humaine" et sera prévilégié pour les descriptions longues. Nous utiliserons GPT-5 pour les taches de mise en forme, et de rédaction plus courte (slugs, meta-titres, baslises alt) car moins cher.
-
----
-
-### **Tailwind CSS & Shadcn/ui**
-
-Tailwind permet un développement rapide avec des classes utilitaires, évitant la gestion de fichiers CSS séparés.
-Shadcn/ui fournit des composants accessibles et personnalisables (pas une librairie, mais des templates copiables). Cette approche offre flexibilité et contrôle total sur le code, tout en accélérant le développement avec des composants modernes et bien conçus.
+- **RabbitMQ** - Broker de messages pour le traitement asynchrone des générations
+- **PostgreSQL 17** - Données relationnelles (utilisateurs, boutiques, produits, collections)
+- **MongoDB 8** (Replica Set) - Jobs de génération IA + Change Streams pour le SSE
+- **Docker** + **Docker Compose** - Conteneurisation de tous les services
+- **pnpm** - Gestionnaire de paquets avec workspaces monorepo
 
 ## 📁 Architecture
 
-![Architecture Microservices](./docs/architecture.png)
+![Architecture Microservices](./docs/images/architecture-v2.png)
 
-Le projet utilise une architecture microservices avec :
+Le projet utilise une architecture microservices orientée événements :
 
-- **Frontend** (port 3000) : Interface React/Next.js
-- **API Gateway** (port 4000) : Point d'entrée unique pour router les requêtes
-- **3 Microservices Backend** :
-  - `/users` (port 5001) : Gestion utilisateurs avec PostgreSQL
-  - `/generations` (port 5002) : Génération de contenu IA avec MongoDB
-  - `/shop` (port 5003) : Gestion boutique avec PostgreSQL
+```
+Frontend (3000) → API Gateway (4000) → Users API (5001) → PostgreSQL (users_db)
+                                     → Generations API (5002) → MongoDB ← Change Streams (SSE)
+                                     → Shop API (5003) → PostgreSQL (seo_facile_shops)
+                                     ↓
+                               Generations API → RabbitMQ → Worker (x3) → OpenAI / Anthropic
+                                                                        → MongoDB (update job)
+```
 
-Chaque service est indépendant, dockerisé, et communique via l'API Gateway.
+| Service           | Port        | Base de données               | Rôle                                             |
+| ----------------- | ----------- | ----------------------------- | ------------------------------------------------ |
+| **Frontend**      | 3000        | -                             | Interface Next.js                                |
+| **API Gateway**   | 4000        | -                             | Reverse proxy, routage, authentification          |
+| **Users API**     | 5001        | PostgreSQL (`users_db`)       | Authentification, utilisateurs, sessions          |
+| **Generations API** | 5002      | MongoDB (`generations-db`)    | Jobs de génération IA, streaming SSE             |
+| **Shop API**      | 5003        | PostgreSQL (`seo_facile_shops`) | Boutiques Shopify, produits, collections, settings |
+| **Worker** (x3)   | -           | MongoDB                       | Traitement asynchrone des générations via IA      |
+| **RabbitMQ**      | 5672 / 15672 | -                            | Broker de messages                                |
+
+### Monorepo et packages partagés
+
+Le projet est organisé en monorepo pnpm avec des packages workspace partagés :
+
+- **`@seo-facile-de-ouf/shared`** (`shared/`) : types TypeScript partagés entre frontend et backend (User, ShopifyProduct, ShopifyCollection, StoreSettings, Generation...)
+- **`@seo-facile-de-ouf/backend-shared`** (`backend/shared/`) : utilitaires backend communs aux microservices (error middleware, gateway guard, chiffrement AES-256-GCM, factory Express, helpers controllers)
 
 ## 🚀 Installation
 
-Le projet comprend un script `setup.sh` à la racine du projet qui permet d'initialiser le projet et configurer les variables d'environnement.
+Le projet comprend un script `setup.sh` qui initialise le projet et configure les variables d'environnement.
 
 ```bash
 chmod +x setup.sh
@@ -116,9 +104,10 @@ chmod +x setup.sh
 
 Le script va :
 
-- ✅ Créer le fichier `.env` à la racine (pour Docker Compose) depuis `env.example`
-- ✅ Créer les fichiers `.env` pour chaque microservice
-- ✅ Installer toutes les dépendances avec `pnpm`
+- Créer le fichier `.env` à la racine (pour Docker Compose) depuis `env.example`
+- Créer les fichiers `.env` pour chaque microservice
+- Installer toutes les dépendances avec `pnpm`
+- Générer les clients Prisma pour Users API et Shop API
 
 **Note :** Les fichiers `.env` ne sont PAS versionnés (dans `.gitignore`). Seul `env.example` est commité comme template.
 
@@ -130,128 +119,135 @@ Le script va :
 docker-compose up --build
 ```
 
-Tous les services démarrent automatiquement avec hot-reload !
+Tous les services démarrent automatiquement avec hot-reload. Le worker est configuré avec 3 replicas pour le traitement parallèle des générations.
 
 ### Option 2 : En local (développement)
 
-Ouvrir plusieurs terminaux :
-
-**Terminal 1 - API Gateway (port 4000)**
-
 ```bash
-cd backend/api-gateway && pnpm dev
+pnpm run dev    # Lance tous les services en mode concurrent
 ```
 
-**Terminal 2 - Users API (port 5001)**
+Ou individuellement :
 
 ```bash
-cd backend/users-api && pnpm dev
+pnpm run frontend         # Next.js (port 3000)
+pnpm run api-gateway      # Express gateway (port 4000)
+pnpm run users-api        # Users service (port 5001)
+pnpm run generations-api  # Generations service (port 5002)
+pnpm run shop-api         # Shop service (port 5003)
 ```
 
-**Terminal 3 - Generations API (port 5002)**
-
-```bash
-cd backend/generations-api && pnpm dev
-```
-
-**Terminal 4 - Shop API (port 5003)**
-
-```bash
-cd backend/shop-api && pnpm dev
-```
-
-**Terminal 5 - Frontend (port 3000)**
-
-```bash
-cd frontend && pnpm dev
-```
+**Prérequis en local :** PostgreSQL, MongoDB (en Replica Set) et RabbitMQ doivent être installés et lancés.
 
 ## 📍 Routes disponibles
 
 ### Via API Gateway (http://localhost:4000)
 
-- `GET /api/` - Status du gateway
-- `GET /api/generation/*` - Proxy vers Generations API
-- `GET /api/users/*` - Proxy vers Users API
-- `GET /api/shop/*` - Proxy vers Shop API
+#### Authentification (pas d'auth requise)
 
-### Users API (http://localhost:5001)
+| Méthode | Route                | Description               |
+| ------- | -------------------- | ------------------------- |
+| POST    | `/api/auth/sign-up`  | Inscription               |
+| POST    | `/api/auth/sign-in`  | Connexion                 |
+| POST    | `/api/auth/sign-out` | Déconnexion               |
+| GET     | `/auth/me`           | Info utilisateur connecté |
 
-- Gestion des utilisateurs, authentification
-- Base de données : PostgreSQL
+#### Boutiques (auth requise)
 
-### Generations API (http://localhost:5002)
+| Méthode | Route                       | Description                  |
+| ------- | --------------------------- | ---------------------------- |
+| GET     | `/stores`                   | Liste des boutiques          |
+| POST    | `/stores`                   | Ajouter une boutique         |
+| GET     | `/stores/:storeId`          | Détail d'une boutique        |
+| PUT     | `/stores/:storeId`          | Modifier une boutique        |
+| DELETE  | `/stores/:storeId`          | Supprimer une boutique       |
+| GET     | `/stores/:storeId/settings` | Paramètres SEO               |
+| PUT     | `/stores/:storeId/settings` | Modifier les paramètres SEO  |
 
-- Génération de contenu IA
-- Base de données : MongoDB
+#### Produits (auth requise)
 
-### Shop API (http://localhost:5003)
+| Méthode | Route                                        | Description                 |
+| ------- | -------------------------------------------- | --------------------------- |
+| GET     | `/shops/:shopId/products`                    | Liste des produits          |
+| GET     | `/shops/:shopId/products/:productId`         | Détail d'un produit         |
+| POST    | `/shops/:shopId/products/sync`               | Synchroniser depuis Shopify |
+| PATCH   | `/shops/:shopId/products/:productId`         | Modifier un produit         |
+| POST    | `/shops/:shopId/products/:productId/publish` | Publier sur Shopify         |
 
-- Gestion des boutiques et intégrations
-- Base de données : PostgreSQL
+#### Collections (auth requise)
 
-## 🧪 Tester
+| Méthode | Route                                              | Description                 |
+| ------- | -------------------------------------------------- | --------------------------- |
+| GET     | `/shops/:shopId/collections`                       | Liste des collections       |
+| GET     | `/shops/:shopId/collections/:collectionId`         | Détail d'une collection     |
+| POST    | `/shops/:shopId/collections/sync`                  | Synchroniser depuis Shopify |
+| PATCH   | `/shops/:shopId/collections/:collectionId`         | Modifier une collection     |
+| POST    | `/shops/:shopId/collections/:collectionId/publish` | Publier sur Shopify         |
 
-```bash
-# Via le gateway
-curl http://localhost:4000/api/users/
-curl http://localhost:4000/api/generation/
-curl http://localhost:4000/api/shop/
+#### Générations IA (auth requise)
 
-# Directement les microservices
-curl http://localhost:5001/
-curl http://localhost:5002/
-curl http://localhost:5003/
-```
+| Méthode | Route                                   | Description                      |
+| ------- | --------------------------------------- | -------------------------------- |
+| POST    | `/generations/generate`                 | Créer un job de génération (202) |
+| POST    | `/generations/generate/bulk`            | Génération en masse (max 50)     |
+| GET     | `/generations/job/:id`                  | Status d'un job                  |
+| GET     | `/generations/job/:id/stream`           | Stream SSE temps réel            |
+| GET     | `/generations`                          | Toutes les générations           |
+| GET     | `/generations/product/:productId`       | Historique d'un produit          |
+| GET     | `/generations/collection/:collectionId` | Historique d'une collection      |
+| GET     | `/generations/jobs`                     | Liste avec filtres               |
 
 ## 🗄️ Bases de données
 
-### MongoDB (Generations)
+### PostgreSQL
 
-**Avec MongoDB Compass :**
+Deux bases de données gérées via Prisma :
 
-1. Téléchargez [MongoDB Compass](https://www.mongodb.com/try/download/compass)
-2. Connectez-vous à : `mongodb://localhost:27017`
-3. Accédez à la base `generations-db`
+- **`users_db`** : utilisateurs, sessions, comptes OAuth (Better Auth)
+- **`seo_facile_shops`** : boutiques, paramètres SEO, collections, produits Shopify
 
-**Avec CLI :**
+**Interface graphique :** Adminer à http://localhost:8082 (server: `postgres`, user: `postgres`, password: `postgres`)
 
-```bash
-mongosh mongodb://localhost:27017/generations-db
-```
-
-### PostgreSQL (Users & Shop)
-
-**Connexion :**
+**Prisma :**
 
 ```bash
-psql -h localhost -U postgres -d users_db
-psql -h localhost -U postgres -d shop_db
+cd backend/users-api && pnpm prisma:generate && pnpm prisma:push
+cd backend/shop-api && pnpm prisma:generate && pnpm prisma:push
 ```
 
-**Migrations Prisma :**
+### MongoDB
 
-```bash
-cd backend/users-api && pnpm prisma migrate dev
-cd backend/shop-api && pnpm prisma migrate dev
-```
+Une base **`generations-db`** contenant les jobs de génération IA. Configurée en **Replica Set** (obligatoire pour les Change Streams utilisés par le SSE).
+
+**Interface graphique :** Mongo Express à http://localhost:8081
+
+### RabbitMQ
+
+Broker de messages pour la queue `ai-generation-jobs`. Les workers (3 replicas) consomment les messages avec `prefetch: 1`.
+
+**Interface graphique :** http://localhost:15672 (user: `guest`, password: `guest`)
 
 ## 🔧 Configuration
 
-Les variables d'environnement sont dans les fichiers `.env` de chaque service.
-Des fichiers `.env.example` sont fournis comme templates.
+Les variables d'environnement sont dans les fichiers `.env` de chaque service. Des fichiers `.env.example` sont fournis comme templates.
 
-### Variables importantes :
+### Variables critiques
 
-- `PORT` - Port d'écoute du service
-- `DATABASE_URL` - URI PostgreSQL (Users & Shop)
-- `MONGO_URI` - URI MongoDB (Generations)
-- `USERS_API_URL` - URL de l'API Users (pour le gateway)
-- `GENERATIONS_API_URL` - URL de l'API Generations (pour le gateway)
-- `SHOP_API_URL` - URL de l'API Shop (pour le gateway)
+| Variable             | Service(s)                           | Description                          |
+| -------------------- | ------------------------------------ | ------------------------------------ |
+| `GATEWAY_SECRET`     | API Gateway + microservices          | Secret partagé pour le gateway guard |
+| `BETTER_AUTH_SECRET` | Users API                            | Signature des JWT                    |
+| `ENCRYPTION_KEY`     | Shop API                             | Chiffrement AES-256-GCM des credentials Shopify |
+| `DATABASE_URL`       | Users API, Shop API                  | URI PostgreSQL                       |
+| `MONGO_URI`          | Generations API, Worker              | URI MongoDB                          |
+| `RABBITMQ_URL`       | Generations API, Worker              | URI RabbitMQ                         |
+| `OPENAI_API_KEY`     | Worker                               | Clé API OpenAI                       |
+| `ANTHROPIC_API_KEY`  | Worker                               | Clé API Anthropic                    |
+| `FRONTEND_URL`       | Tous les backends                    | URL du frontend pour CORS            |
 
 ## 📝 Notes
 
-- En **Docker** : Les services utilisent les noms de conteneurs (`http://generations-api:5002`)
-- En **local** : Les services utilisent `localhost` (`http://localhost:5002`)
+- En **Docker** : les services utilisent les noms de conteneurs (`http://users-api:5001`, `http://shop-api:5003`)
+- En **local** : les services utilisent `localhost` (`http://localhost:5001`, `http://localhost:5003`)
 - Le script `setup.sh` configure automatiquement les `.env` pour Docker
+- La documentation technique complète est disponible dans [`docs/documentation-technique.md`](docs/documentation-technique.md)

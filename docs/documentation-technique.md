@@ -75,6 +75,16 @@ Albora Florian - Fravalo Killian | Ynov Toulouse 2026-2027
   - [11.2 Docker Compose](#112-docker-compose)
   - [11.3 Variables d'environnement](#113-variables-denvironnement)
 - [12. Endpoints API](#12-endpoints-api)
+- [13. Principes DRY et KISS appliqués](#13-principes-dry-et-kiss-appliqués)
+  - [13.1 Philosophie](#131-philosophie)
+  - [13.2 Package backend partagé](#132-package-backend-partagé)
+  - [13.3 Factory d'application Express](#133-factory-dapplication-express)
+  - [13.4 Utilitaires de controllers](#134-utilitaires-de-controllers)
+  - [13.5 Hooks frontend génériques](#135-hooks-frontend-génériques)
+  - [13.6 Schémas de validation factorisés](#136-schémas-de-validation-factorisés)
+  - [13.7 Strategy pattern dans le worker](#137-strategy-pattern-dans-le-worker)
+  - [13.8 Utilitaires de formatage partagés](#138-utilitaires-de-formatage-partagés)
+  - [13.9 Bilan](#139-bilan)
 
 ---
 
@@ -1205,6 +1215,257 @@ Voici le récapitulatif complet des endpoints exposés par l'API Gateway :
 | GET     | `/generations/product/:productId`       | Historique produit                      |
 | GET     | `/generations/collection/:collectionId` | Historique collection                   |
 | GET     | `/generations/jobs`                     | Liste avec filtres                      |
+
+---
+
+## 13. Principes DRY et KISS appliqués
+
+### 13.1 Philosophie
+
+L'architecture d'EasySeo suit deux principes fondamentaux :
+
+- **DRY (Don't Repeat Yourself)** : chaque logique n'existe qu'à un seul endroit. Lorsque plusieurs services ou composants partagent un même comportement, celui-ci est extrait dans un module commun.
+- **KISS (Keep It Simple, Stupid)** : chaque abstraction doit simplifier le code, pas le complexifier. On ne fusionne pas deux composants qui ont des responsabilités distinctes juste parce qu'ils se ressemblent visuellement.
+
+Concrètement, ces principes se traduisent par deux packages partagés (`shared` pour les types, `backend-shared` pour les utilitaires backend), des hooks génériques côté frontend, un pattern strategy dans le worker et des modules utilitaires réutilisables.
+
+### 13.2 Package backend partagé
+
+Les 4 services backend (API Gateway, Users API, Generations API, Shop API) reposent sur des middlewares communs. Pour éviter toute duplication, ceux-ci sont centralisés dans un package workspace `@seo-facile-de-ouf/backend-shared` (`backend/shared/`) :
+
+| Module             | Rôle                                                            | Utilisé par                              |
+| ------------------ | --------------------------------------------------------------- | ---------------------------------------- |
+| `error.middleware`  | Middleware Express de gestion d'erreurs                         | Les 4 services                           |
+| `gateway-guard`     | Vérification du header `X-Gateway-Secret` + extraction userId   | Users API, Generations API, Shop API     |
+| `encryption`        | Chiffrement/déchiffrement AES-256-GCM                           | Shop API                                 |
+| `app-factory`       | Factory `createApp()` pour initialiser Express                  | Users API, Generations API, Shop API     |
+| `controller-utils`  | Helpers pour les controllers (`getParam`, `handleServiceError`) | Shop API                                 |
+
+Chaque service importe depuis un seul point d'entrée :
+
+```typescript
+import { createApp, gatewayGuard, requireAuth } from "@seo-facile-de-ouf/backend-shared";
+```
+
+### 13.3 Factory d'application Express
+
+L'initialisation d'un service Express (CORS, JSON parser, montage des routes, error handler) est encapsulée dans une factory `createApp()`. Chaque service déclare simplement ses routes :
+
+```typescript
+import { createApp } from "@seo-facile-de-ouf/backend-shared";
+
+export default () =>
+  createApp({
+    routes: [
+      { path: "/collections", router: collectionsRouter },
+      { path: "/products", router: productsRouter },
+    ],
+  });
+```
+
+Un paramètre optionnel `beforeRoutes` permet d'injecter du middleware avant le parsing JSON, ce qui est nécessaire pour Better Auth dans Users API (qui a besoin du body brut) :
+
+```typescript
+export default () =>
+  createApp({
+    beforeRoutes: (app) => {
+      app.all("/api/auth/*splat", toNodeHandler(auth));
+    },
+    routes: [
+      { path: "/auth", router: authRouter },
+      { path: "/", router: userRouter },
+    ],
+  });
+```
+
+L'API Gateway conserve sa propre initialisation car son rôle de reverse proxy (`http-proxy-middleware`) ne suit pas le même pattern. C'est un choix KISS : forcer la Gateway dans la factory ajouterait de la complexité inutile.
+
+### 13.4 Utilitaires de controllers
+
+Les controllers utilisent des fonctions utilitaires communes pour les opérations récurrentes :
+
+```typescript
+// Extraction typée d'un paramètre de route
+const shopId = getParam(req, "shopId");
+
+// Vérification userId avec réponse 401 automatique
+const userId = getRequiredUserId(req, res);
+if (!userId) return;
+
+// Gestion d'erreur avec détection automatique du code HTTP
+handleServiceError(res, error, "Erreur lors de la mise à jour");
+```
+
+`handleServiceError` analyse le message d'erreur pour retourner le bon code HTTP (404 pour "not found", 403 pour "Unauthorized", 502 pour "Shopify error", 500 par défaut). Cela évite de répéter les mêmes blocs `try/catch` dans chaque handler.
+
+### 13.5 Hooks frontend génériques
+
+Les entités Shopify (produits, collections) partagent les mêmes patterns d'accès aux données. Plutôt que de dupliquer la logique, deux hooks génériques gèrent les cas communs :
+
+**`useEntityList<T>`** — pattern de liste paginée avec synchronisation :
+
+```typescript
+function useEntityList<T>(options: {
+  endpoint: string;
+  entityName: string;
+  extractItems: (res: any) => T[];
+  extractTotal: (res: any) => number;
+  buildParams?: (page: number, pageSize: number) => Record<string, string>;
+})
+// Retourne : items, loading, syncing, error, page, pageSize, total, fetchItems, syncItems, setPage, setPageSize
+```
+
+**`useEntityCRUD<T, U>`** — pattern CRUD unitaire avec publication :
+
+```typescript
+function useEntityCRUD<T, U>(options: {
+  endpoint: string;
+  entityName: string;
+  extractEntity: (res: any) => T;
+})
+// Retourne : entity, loading, saving, publishing, syncing, error, fetchEntity, updateEntity, publishEntity, syncEntity
+```
+
+Les hooks spécifiques sont de simples wrappers qui paramètrent le hook générique :
+
+```typescript
+// use-shopify-products.ts
+export function useShopifyProducts(storeId: string, filters?: ProductFilters) {
+  const buildParams = useCallback((page: number, pageSize: number) => {
+    const params: Record<string, string> = { page: String(page), pageSize: String(pageSize) };
+    if (filters?.status) params.status = filters.status;
+    if (filters?.collectionId) params.collectionId = filters.collectionId;
+    if (filters?.search) params.search = filters.search;
+    return params;
+  }, [filters]);
+
+  const { items: products, syncItems: syncProducts, ...rest } = useEntityList<ShopifyProduct>({
+    endpoint: `/shops/${storeId}/products`,
+    entityName: "products",
+    extractItems: (res) => res.products,
+    extractTotal: (res) => res.total,
+    buildParams,
+  });
+
+  return { products, syncProducts, ...rest };
+}
+```
+
+Les composants de formulaire (product-form.tsx, collection-form.tsx) ne sont **pas** fusionnés : ils ont des champs, des contextes de génération IA et des layouts suffisamment différents pour que leur fusion ajouterait de la complexité. C'est l'application directe du principe KISS.
+
+### 13.6 Schémas de validation factorisés
+
+Les formulaires de produit et de collection partagent les mêmes champs SEO. Un fichier `base-seo.ts` centralise les règles de validation communes :
+
+```typescript
+// frontend/lib/validations/base-seo.ts
+export const baseSeoFields = {
+  title: z.string().min(1, "Le titre est requis.").max(255),
+  descriptionHtml: z.string().max(65535).optional().nullable(),
+  seoTitle: z.string().optional().nullable(),
+  seoDescription: z.string().optional().nullable(),
+};
+```
+
+Les schémas spécifiques étendent cette base avec leurs propres champs :
+
+```typescript
+// product.ts — ajoute les champs propres au produit
+export const productFormSchema = z.object({
+  ...baseSeoFields,
+  tags: z.array(z.string()),
+  imageAlt: z.string().max(512).optional().nullable(),
+  status: z.enum(["ACTIVE", "DRAFT", "ARCHIVED"]),
+});
+
+// collection.ts — utilise uniquement la base
+export const collectionFormSchema = z.object({
+  ...baseSeoFields,
+});
+```
+
+Modifier une règle de validation SEO (ex: longueur max du titre) se fait à un seul endroit et s'applique automatiquement à tous les formulaires.
+
+### 13.7 Strategy pattern dans le worker
+
+Le worker traite des générations pour deux types d'entités (produits et collections) avec la même logique de dispatch (description, meta-tags, génération complète...). Un **strategy pattern** via la fonction `getGenerators()` retourne les générateurs appropriés selon le type d'entité :
+
+```typescript
+function getGenerators(entityType: string, context: any) {
+  if (entityType === "product") {
+    return {
+      entityName: context.productContext?.title || "produit",
+      generateDescription: () => openaiService.generateProductDescription(context),
+      generateMeta: () => openaiService.generateProductMeta(context),
+    };
+  }
+  return {
+    entityName: context.collectionContext?.title || "collection",
+    generateDescription: () => openaiService.generateCollectionDescription(context),
+    generateMeta: () => openaiService.generateCollectionMeta(context),
+  };
+}
+```
+
+Une seule fonction `generateContent()` utilise ces générateurs dans un unique `switch` :
+
+```typescript
+async function generateContent(job: any): Promise<GenerationContent> {
+  const { generateDescription, generateMeta } = getGenerators(job.entityType, job);
+
+  switch (job.fieldType) {
+    case "description":
+      return { description: await generateDescription() };
+    case "full_description":
+      const [desc, meta] = await Promise.all([generateDescription(), generateMeta()]);
+      return { description: desc, ...meta };
+    // ...
+  }
+}
+```
+
+L'ajout d'un nouveau type d'entité (ex: pages Shopify) ne nécessiterait qu'un nouveau cas dans `getGenerators()`, sans toucher à la logique de dispatch.
+
+### 13.8 Utilitaires de formatage partagés
+
+Les fonctions de formatage de dates et de prix, utilisées dans plusieurs composants, sont centralisées dans `frontend/lib/format.ts` :
+
+```typescript
+export function formatDate(date: Date | string): string {
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(date));
+}
+
+export function formatPrice(price: number): string {
+  return new Intl.NumberFormat("fr-FR", {
+    style: "currency",
+    currency: "EUR",
+  }).format(price);
+}
+```
+
+Les composants importent depuis ce module :
+
+```typescript
+import { formatDate, formatPrice } from "@/lib/format";
+```
+
+### 13.9 Bilan
+
+| Zone                | Mécanisme DRY/KISS                          |
+| ------------------- | ------------------------------------------- |
+| Middlewares backend  | Package partagé `@seo-facile-de-ouf/backend-shared` |
+| Initialisation Express | Factory `createApp()` paramétrable        |
+| Controllers          | Utilitaires `getParam`, `getRequiredUserId`, `handleServiceError` |
+| Hooks liste          | Hook générique `useEntityList<T>`           |
+| Hooks CRUD           | Hook générique `useEntityCRUD<T, U>`        |
+| Validation Zod       | Base commune `baseSeoFields` + extensions   |
+| Worker consumer      | Strategy pattern `getGenerators()` + dispatch unifié |
+| Formatage            | Module partagé `lib/format.ts`              |
+
+Chaque abstraction a été introduite uniquement là où le partage de logique est avéré (au moins 2 occurrences identiques), jamais de manière préventive. Les composants qui se ressemblent visuellement mais ont des responsabilités distinctes (formulaires produit vs collection, API Gateway vs microservices) restent séparés.
 
 ---
 
