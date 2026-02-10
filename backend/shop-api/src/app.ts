@@ -1,35 +1,15 @@
-import express, { Application } from "express";
-import cors from "cors";
 import storeRouter from "./routes/store.routes";
 import storeSettingsRouter from "./routes/store-settings.routes";
 import collectionsRouter from "./routes/shopify-collections.routes";
 import productsRouter from "./routes/shopify-products.routes";
-import { errorHandler } from "./middlewares/error.middleware";
+import { createApp } from "@seo-facile-de-ouf/backend-shared";
 
-const createApp = (): Application => {
-  const app = express();
-
-  // Configure CORS to allow credentials from frontend via API Gateway
-  app.use(
-    cors({
-      origin: process.env.FRONTEND_URL || "http://localhost:3000",
-      credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
-    })
-  );
-
-  app.use(express.json());
-
-  // Mount routes
-  app.use("/stores", storeRouter);
-  app.use("/stores", storeSettingsRouter); // Handles /stores/:storeId/settings
-  app.use("/", collectionsRouter); // Handles /shops/:shopId/collections
-  app.use("/", productsRouter); // Handles /shops/:shopId/products
-
-  app.use(errorHandler);
-
-  return app;
-};
-
-export default createApp;
+export default () =>
+  createApp({
+    routes: [
+      { path: "/stores", router: storeRouter },
+      { path: "/stores", router: storeSettingsRouter },
+      { path: "/", router: collectionsRouter },
+      { path: "/", router: productsRouter },
+    ],
+  });

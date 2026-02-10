@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as productsController from "../controllers/shopify-products.controller";
-import { gatewayGuard, requireAuth } from "../middlewares/gateway-guard";
+import { gatewayGuard, requireAuth } from "@seo-facile-de-ouf/backend-shared";
 
 const router = Router();
 

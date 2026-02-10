@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as authController from "../controllers/auth.controller";
-import { gatewayGuard } from "../middlewares/gateway-guard";
+import { gatewayGuard } from "@seo-facile-de-ouf/backend-shared";
 
 const router = Router();
 

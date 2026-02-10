@@ -20,6 +20,7 @@
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.1",
     "@prisma/client": "^7.0.1",
+    "@seo-facile-de-ouf/backend-shared": "workspace:*",
     "@seo-facile-de-ouf/shared": "workspace:*",
     "@shopify/shopify-api": "^12.3.0",
     "cors": "^2.8.5",

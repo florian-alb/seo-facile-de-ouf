@@ -1,6 +1,4 @@
-// backend/worker/src/consumer.ts
 import amqp, { Channel, Connection, ConsumeMessage } from "amqplib";
-// import { generateWithClaude } from './services/claude.service';
 import {
   generateWithOpenAI,
   generateDescriptionWithOpenAI,
@@ -13,22 +11,23 @@ import { Generation, IGeneration } from "./models/generation.model";
 const QUEUE_NAME = "ai-generation-jobs";
 const MAX_RETRIES = 3;
 
+type JobType =
+  | "full_description"
+  | "meta_only"
+  | "slug_only"
+  | "description"
+  | "seoTitle"
+  | "seoDescription";
+
 interface JobMessage {
   jobId: string;
-  type:
-    | "full_description"
-    | "meta_only"
-    | "slug_only"
-    | "description"
-    | "seoTitle"
-    | "seoDescription";
+  type: JobType;
   entityType?: "product" | "collection";
 }
 
 let channel: Channel;
 
 export async function startConsumer(rabbitmqUrl: string): Promise<void> {
-  // Connexion avec retry
   let connection: Connection | null = null;
   let retries = 0;
 
@@ -37,7 +36,7 @@ export async function startConsumer(rabbitmqUrl: string): Promise<void> {
       connection = await amqp.connect(rabbitmqUrl);
     } catch (error) {
       retries++;
-      console.log(`⏳ RabbitMQ not ready, retry ${retries}/10...`);
+      console.log(`RabbitMQ not ready, retry ${retries}/10...`);
       await new Promise((r) => setTimeout(r, 2000));
     }
   }
@@ -47,67 +46,51 @@ export async function startConsumer(rabbitmqUrl: string): Promise<void> {
   }
 
   channel = await connection.createChannel();
-
-  // Créer la queue si elle n'existe pas
-  await channel.assertQueue(QUEUE_NAME, {
-    durable: true, // Persiste même si RabbitMQ redémarre
-  });
-
-  // Prefetch: traiter 1 message à la fois par worker
+  await channel.assertQueue(QUEUE_NAME, { durable: true });
   channel.prefetch(1);
-
-  // Consommer les messages
   channel.consume(QUEUE_NAME, handleMessage, { noAck: false });
 }
 
-// Suite de consumer.ts
 async function handleMessage(msg: ConsumeMessage | null): Promise<void> {
   if (!msg) return;
 
   const job: JobMessage = JSON.parse(msg.content.toString());
-  console.log(`📥 Received job: ${job.jobId}`);
+  console.log(`Received job: ${job.jobId}`);
 
   try {
-    // 1. Récupérer le job en base
     const generation = await Generation.findById(job.jobId);
     if (!generation) {
-      console.error(`❌ Job not found: ${job.jobId}`);
+      console.error(`Job not found: ${job.jobId}`);
       channel.ack(msg);
       return;
     }
 
-    // 2. Marquer comme "processing"
     generation.status = "processing";
     await generation.save();
-    console.log(
-      `⚙️ Processing: ${generation.entityType === "collection" ? generation.collectionName : generation.productName}`,
-    );
 
-    // 3. Générer le contenu
-    const content = await generateContent(generation, job.type);
+    const entityName = generation.entityType === "collection"
+      ? generation.collectionName
+      : generation.productName;
+    console.log(`Processing: ${entityName}`);
 
-    // 4. Sauvegarder le résultat
     generation.status = "completed";
-    generation.content = content;
+    generation.content = await generateContent(generation, job.type);
     generation.completedAt = new Date();
     await generation.save();
 
-    console.log(
-      `✅ Completed: ${generation.entityType === "collection" ? generation.collectionName : generation.productName}`,
-    );
+    console.log(`Completed: ${entityName}`);
     channel.ack(msg);
   } catch (error) {
     await handleError(msg, job, error as Error);
   }
 }
 
-// Suite de consumer.ts
 async function handleError(
   msg: ConsumeMessage,
   job: JobMessage,
   error: Error,
 ): Promise<void> {
-  console.error(`❌ Error processing ${job.jobId}:`, error.message);
+  console.error(`Error processing ${job.jobId}:`, error.message);
 
   const generation = await Generation.findById(job.jobId);
   if (!generation) {
@@ -118,45 +101,19 @@ async function handleError(
   generation.retryCount += 1;
 
   if (generation.retryCount < MAX_RETRIES) {
-    // Retry: remettre dans la queue après un délai
     generation.status = "pending";
     await generation.save();
-
-    console.log(
-      `🔄 Retry ${generation.retryCount}/${MAX_RETRIES} for ${job.jobId}`,
-    );
-
-    // Nack avec requeue après délai
+    console.log(`Retry ${generation.retryCount}/${MAX_RETRIES} for ${job.jobId}`);
     setTimeout(() => {
       channel.nack(msg, false, true);
-    }, 5000 * generation.retryCount); // Backoff exponentiel
+    }, 5000 * generation.retryCount);
   } else {
-    // Max retries atteint: marquer comme failed
     generation.status = "failed";
     generation.error = error.message;
     await generation.save();
-
-    console.log(`💀 Job failed permanently: ${job.jobId}`);
+    console.log(`Job failed permanently: ${job.jobId}`);
     channel.ack(msg);
   }
-}
-
-type JobType =
-  | "full_description"
-  | "meta_only"
-  | "slug_only"
-  | "description"
-  | "seoTitle"
-  | "seoDescription";
-
-async function generateContent(
-  generation: IGeneration,
-  type: JobType,
-): Promise<IGeneration["content"]> {
-  if (generation.entityType === "collection") {
-    return generateCollectionContent(generation, type);
-  }
-  return generateProductContent(generation, type);
 }
 
 function resolveLanguageName(generation: IGeneration): string {
@@ -164,84 +121,61 @@ function resolveLanguageName(generation: IGeneration): string {
   return LANGUAGE_MAP[lang] || "French";
 }
 
-async function generateProductContent(
-  generation: IGeneration,
-  type: JobType,
-): Promise<IGeneration["content"]> {
+interface EntityGenerators {
+  generateDescription: () => Promise<string>;
+  generateMeta: () => Promise<{ metaTitle: string; metaDescription: string; slug: string }>;
+  entityName: string;
+}
+
+function getGenerators(generation: IGeneration): EntityGenerators {
   const languageName = resolveLanguageName(generation);
-  const input = {
+
+  if (generation.entityType === "collection") {
+    const baseInput = {
+      collectionName: generation.collectionName!,
+      keywords: generation.keywords,
+      languageName,
+    };
+    return {
+      entityName: generation.collectionName!,
+      generateDescription: () =>
+        generateCollectionDescriptionWithOpenAI({
+          ...baseInput,
+          storeSettings: generation.storeSettings || null,
+          collectionContext: generation.collectionContext || null,
+        }),
+      generateMeta: () => generateCollectionMetaWithOpenAI(baseInput),
+    };
+  }
+
+  const baseInput = {
     productName: generation.productName!,
     keywords: generation.keywords,
     languageName,
   };
-
-  switch (type) {
-    case "description": {
-      const descriptionHtml = await generateDescriptionWithOpenAI({
-        ...input,
+  return {
+    entityName: generation.productName!,
+    generateDescription: () =>
+      generateDescriptionWithOpenAI({
+        ...baseInput,
         storeSettings: generation.storeSettings || null,
         productContext: generation.productContext || null,
-      });
-      return {
-        title: generation.productName!,
-        description: descriptionHtml,
-        metaTitle: "",
-        metaDescription: "",
-        slug: "",
-      };
-    }
-
-    case "seoTitle":
-    case "seoDescription":
-    case "meta_only":
-    case "slug_only": {
-      const meta = await generateWithOpenAI(input);
-      return {
-        title: generation.productName!,
-        description: "",
-        ...meta,
-      };
-    }
-
-    case "full_description":
-    default: {
-      const [descHtml, metaContent] = await Promise.all([
-        generateDescriptionWithOpenAI({
-          ...input,
-          storeSettings: generation.storeSettings || null,
-          productContext: generation.productContext || null,
-        }),
-        generateWithOpenAI(input),
-      ]);
-      return {
-        title: generation.productName!,
-        description: descHtml,
-        ...metaContent,
-      };
-    }
-  }
+      }),
+    generateMeta: () => generateWithOpenAI(baseInput),
+  };
 }
 
-async function generateCollectionContent(
+async function generateContent(
   generation: IGeneration,
   type: JobType,
 ): Promise<IGeneration["content"]> {
-  const languageName = resolveLanguageName(generation);
-  const input = {
-    collectionName: generation.collectionName!,
-    keywords: generation.keywords,
-    languageName,
-  };
+  const { entityName, generateDescription, generateMeta } = getGenerators(generation);
 
   switch (type) {
     case "description": {
-      const descriptionHtml = await generateCollectionDescriptionWithOpenAI({
-        ...input,
-        storeSettings: generation.storeSettings || null,
-        collectionContext: generation.collectionContext || null,
-      });
+      const descriptionHtml = await generateDescription();
       return {
-        title: generation.collectionName!,
+        title: entityName,
         description: descriptionHtml,
         metaTitle: "",
         metaDescription: "",
@@ -253,9 +187,9 @@ async function generateCollectionContent(
     case "seoDescription":
     case "meta_only":
     case "slug_only": {
-      const meta = await generateCollectionMetaWithOpenAI(input);
+      const meta = await generateMeta();
       return {
-        title: generation.collectionName!,
+        title: entityName,
         description: "",
         ...meta,
       };
@@ -264,15 +198,11 @@ async function generateCollectionContent(
     case "full_description":
     default: {
       const [descHtml, metaContent] = await Promise.all([
-        generateCollectionDescriptionWithOpenAI({
-          ...input,
-          storeSettings: generation.storeSettings || null,
-          collectionContext: generation.collectionContext || null,
-        }),
-        generateCollectionMetaWithOpenAI(input),
+        generateDescription(),
+        generateMeta(),
       ]);
       return {
-        title: generation.collectionName!,
+        title: entityName,
         description: descHtml,
         ...metaContent,
       };

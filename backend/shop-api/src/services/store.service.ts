@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { exchangeTokenWithShopify, isTokenExpired } from "./token.service";
-import { encrypt, decrypt } from "../lib/encryption";
+import { encrypt, decrypt } from "@seo-facile-de-ouf/backend-shared";
 
 export interface CreateStoreInput {
   name: string;

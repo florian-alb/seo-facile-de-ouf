@@ -2,7 +2,7 @@ import express, { Application, Request, Response } from "express";
 import cors from "cors";
 import { setupProxies } from "./config/proxy";
 import { ROUTES } from "./config/routes";
-import { errorHandler } from "./middlewares/error.middleware";
+import { errorHandler } from "@seo-facile-de-ouf/backend-shared";
 
 const createApp = (): Application => {
   const app = express();
