@@ -6,6 +6,7 @@ WORKDIR /src
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
+COPY backend/shared ./backend/shared
 COPY backend/api-gateway ./backend/api-gateway
 
 RUN pnpm install --filter api-gateway...

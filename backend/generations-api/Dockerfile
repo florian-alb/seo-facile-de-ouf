@@ -9,6 +9,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Copier shared
 COPY shared ./shared
+COPY backend/shared ./backend/shared
 
 # Copier le service
 COPY backend/generations-api ./backend/generations-api
