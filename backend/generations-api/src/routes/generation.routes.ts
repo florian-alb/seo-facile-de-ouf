@@ -2,7 +2,7 @@ import { Router, Request, Response } from "express";
 import * as generationsController from "../controllers/generations.controller";
 import { Generation } from "@app/models/generation.model";
 import { publishJob } from "@app/lib/rabbitmq";
-import { gatewayGuard, requireAuth, type GatewayAuthenticatedRequest } from "../middlewares/gateway-guard";
+import { gatewayGuard, requireAuth, type GatewayAuthenticatedRequest } from "@seo-facile-de-ouf/backend-shared";
 
 const router = Router();
 

@@ -35,6 +35,7 @@ services:
       - "${API_GATEWAY_PORT:-4000}:4000"
     volumes:
       - ./backend/api-gateway:/src/backend/api-gateway
+      - ./backend/shared:/src/backend/shared
       - /src/backend/api-gateway/node_modules
     env_file: ./backend/api-gateway/.env
     environment:
@@ -62,6 +63,7 @@ services:
       - "${USERS_API_PORT:-5001}:5001"
     volumes:
       - ./backend/users-api:/src/backend/users-api
+      - ./backend/shared:/src/backend/shared
       - ./shared:/src/shared
       - /src/backend/users-api/node_modules
     env_file: ./backend/users-api/.env
@@ -87,6 +89,7 @@ services:
       - "${SHOP_API_PORT:-5003}:5003"
     volumes:
       - ./backend/shop-api:/src/backend/shop-api
+      - ./backend/shared:/src/backend/shared
       - ./shared:/src/shared
       - /src/backend/shop-api/node_modules
     env_file: ./backend/shop-api/.env
@@ -112,6 +115,7 @@ services:
       - "${GENERATIONS_API_PORT:-5002}:5002"
     volumes:
       - ./backend/generations-api:/src/backend/generations-api
+      - ./backend/shared:/src/backend/shared
       - ./shared:/src/shared
       - /src/backend/generations-api/node_modules
     env_file: ./backend/generations-api/.env
@@ -139,6 +143,7 @@ services:
       dockerfile: backend/worker/Dockerfile
     volumes:
       - ./backend/worker:/src/backend/worker
+      - ./backend/shared:/src/backend/shared
       - /src/backend/worker/node_modules
     environment:
       - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672

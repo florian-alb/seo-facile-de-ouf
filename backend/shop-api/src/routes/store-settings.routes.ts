@@ -1,6 +1,6 @@
 import { Router } from "express";
 import * as storeSettingsController from "../controllers/store-settings.controller";
-import { gatewayGuard, requireAuth } from "../middlewares/gateway-guard";
+import { gatewayGuard, requireAuth } from "@seo-facile-de-ouf/backend-shared";
 
 const router = Router();
 

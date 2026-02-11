@@ -8,16 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { formatDate } from "@/lib/format";
 
 interface CollectionInfoSidebarProps {
   collection: ShopifyCollection;
-}
-
-function formatDate(date: Date | string): string {
-  return new Intl.DateTimeFormat("fr-FR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(date));
 }
 
 export function CollectionInfoSidebar({

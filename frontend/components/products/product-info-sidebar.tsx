@@ -10,24 +10,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { formatDate, formatPrice } from "@/lib/format";
 
 interface ProductInfoSidebarProps {
   product: ShopifyProduct;
   collections: ShopifyCollection[];
-}
-
-function formatPrice(price: number): string {
-  return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
-  }).format(price);
-}
-
-function formatDate(date: Date | string): string {
-  return new Intl.DateTimeFormat("fr-FR", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(date));
 }
 
 export function ProductInfoSidebar({

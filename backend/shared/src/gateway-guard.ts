@@ -6,10 +6,6 @@ export interface GatewayAuthenticatedRequest extends Request {
   userName?: string;
 }
 
-/**
- * Middleware that verifies the request comes from the API Gateway
- * and extracts user information from headers
- */
 export function gatewayGuard(
   req: GatewayAuthenticatedRequest,
   res: Response,
@@ -33,7 +29,6 @@ export function gatewayGuard(
     });
   }
 
-  // Extract user information (if present)
   const userId = req.headers["x-user-id"] as string | undefined;
   const userEmail = req.headers["x-user-email"] as string | undefined;
   const userName = req.headers["x-user-name"] as string | undefined;
@@ -47,10 +42,6 @@ export function gatewayGuard(
   next();
 }
 
-/**
- * Middleware that requires an authenticated user
- * Must be used after gatewayGuard on protected routes
- */
 export function requireAuth(
   req: GatewayAuthenticatedRequest,
   res: Response,
@@ -63,4 +54,12 @@ export function requireAuth(
     });
   }
   next();
+}
+
+export function getUserId(req: GatewayAuthenticatedRequest): string {
+  const userId = req.userId;
+  if (!userId) {
+    throw new Error("User ID not found in request");
+  }
+  return userId;
 }

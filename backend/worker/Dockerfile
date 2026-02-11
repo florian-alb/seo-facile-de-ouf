@@ -6,6 +6,7 @@ WORKDIR /src
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
+COPY backend/shared ./backend/shared
 COPY backend/worker ./backend/worker
 
 RUN pnpm install --filter worker...
