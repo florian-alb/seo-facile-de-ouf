@@ -12,12 +12,23 @@ import {
   Save,
   Upload,
   Eye,
-  EyeOff,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Progress } from "@/components/ui/progress";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { apiFetch } from "@/lib/api";
 import type {
   BulkGenerationType,
@@ -128,6 +139,55 @@ function StatusBadge({ status }: { status: BulkJobState["status"] }) {
   }
 }
 
+function JobContentDialog({
+  open,
+  onOpenChange,
+  productName,
+  contentFields,
+  generationType,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  productName: string;
+  contentFields: Record<string, string>;
+  generationType: BulkGenerationType;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>{productName}</DialogTitle>
+          <DialogDescription>
+            {GENERATION_LABELS[generationType]} — Contenu genere
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {Object.entries(contentFields).map(([label, value]) => (
+            <div key={label} className="space-y-1.5">
+              <h4 className="text-sm font-medium text-muted-foreground">
+                {label}
+              </h4>
+              {label === "Description" ? (
+                <div
+                  className="prose prose-sm dark:prose-invert max-w-none rounded-md border p-3 bg-muted/30"
+                  dangerouslySetInnerHTML={{ __html: value }}
+                />
+              ) : (
+                <p className="text-sm rounded-md border p-3 bg-muted/30 whitespace-pre-wrap wrap-break-word">
+                  {value}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+const JOB_ROW_GRID = "grid grid-cols-[2fr_auto_1fr_auto] gap-4 items-center px-4 py-2.5";
+
 function JobRow({
   job,
   storeId,
@@ -137,11 +197,12 @@ function JobRow({
   storeId: string;
   generationType: BulkGenerationType;
 }) {
-  const [expanded, setExpanded] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [saved, setSaved] = useState(false);
   const [published, setPublished] = useState(false);
+
   const handleSave = async () => {
     if (!job.content) return;
     setIsSaving(true);
@@ -183,84 +244,90 @@ function JobRow({
       ? getContentFieldsForType(generationType, job.content)
       : null;
 
+  const previewSnippet = contentFields
+    ? Object.values(contentFields)[0]?.substring(0, 80)
+    : null;
+
   return (
-    <div className="border-b last:border-b-0">
-      <div className="flex items-center gap-3 px-4 py-2">
-        <span className="text-sm font-medium truncate flex-1 min-w-0">
+    <>
+      <div className={`${JOB_ROW_GRID} border-b last:border-b-0 hover:bg-muted/30`}>
+        {/* Product name */}
+        <span className="text-sm font-medium truncate min-w-0">
           {job.productName}
         </span>
 
+        {/* Status */}
         <StatusBadge status={job.status} />
 
-        {job.status === "completed" && contentFields && (
-          <>
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-2"
-              onClick={() => setExpanded(!expanded)}
-            >
-              {expanded ? (
-                <EyeOff className="h-3.5 w-3.5" />
-              ) : (
-                <Eye className="h-3.5 w-3.5" />
-              )}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 px-2"
-              onClick={handleSave}
-              disabled={isSaving || saved}
-            >
-              {isSaving ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : saved ? (
-                <Check className="h-3.5 w-3.5 text-green-600" />
-              ) : (
-                <Save className="h-3.5 w-3.5" />
-              )}
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="h-7 px-2"
-              onClick={handlePublish}
-              disabled={isPublishing || published}
-            >
-              {isPublishing ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : published ? (
-                <Check className="h-3.5 w-3.5 text-green-600" />
-              ) : (
-                <Upload className="h-3.5 w-3.5" />
-              )}
-            </Button>
-          </>
-        )}
+        {/* Preview snippet */}
+        <div className="text-xs text-muted-foreground truncate min-w-0">
+          {job.status === "completed" && previewSnippet ? (
+            <span className="truncate">{previewSnippet}...</span>
+          ) : job.status === "failed" && job.error ? (
+            <span className="text-destructive truncate">{job.error}</span>
+          ) : (
+            <span>—</span>
+          )}
+        </div>
 
-        {job.status === "failed" && job.error && (
-          <span className="text-xs text-destructive truncate max-w-[200px]">
-            {job.error}
-          </span>
-        )}
+        {/* Actions */}
+        <div className="flex items-center gap-1.5">
+          {job.status === "completed" && contentFields && (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2"
+                onClick={() => setPreviewOpen(true)}
+              >
+                <Eye className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2"
+                onClick={handleSave}
+                disabled={isSaving || saved}
+              >
+                {isSaving ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : saved ? (
+                  <Check className="h-3.5 w-3.5 text-green-600" />
+                ) : (
+                  <Save className="h-3.5 w-3.5" />
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 px-2"
+                onClick={handlePublish}
+                disabled={isPublishing || published}
+              >
+                {isPublishing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : published ? (
+                  <Check className="h-3.5 w-3.5 text-green-600" />
+                ) : (
+                  <Upload className="h-3.5 w-3.5" />
+                )}
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
-      {expanded && contentFields && (
-        <div className="px-4 pb-3 space-y-2">
-          {Object.entries(contentFields).map(([label, value]) => (
-            <div key={label} className="text-xs">
-              <span className="font-medium text-muted-foreground">
-                {label} :
-              </span>
-              <p className="mt-0.5 text-foreground whitespace-pre-wrap break-words line-clamp-4">
-                {value}
-              </p>
-            </div>
-          ))}
-        </div>
+      {/* Content Preview Dialog */}
+      {contentFields && (
+        <JobContentDialog
+          open={previewOpen}
+          onOpenChange={setPreviewOpen}
+          productName={job.productName}
+          contentFields={contentFields}
+          generationType={generationType}
+        />
       )}
-    </div>
+    </>
   );
 }
 
@@ -345,74 +412,38 @@ export function BulkActionBar({
   // Mode 2: Tracking active generations
   if (isTracking) {
     return (
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-200">
-        <div className="w-[700px] max-w-[90vw] rounded-lg border bg-background shadow-lg">
+      <Collapsible open={trackingExpanded} onOpenChange={setTrackingExpanded}>
+        <div className="rounded-lg border bg-background">
           {/* Header */}
-          <div className="flex items-center gap-3 px-4 py-3 border-b">
-            <div className="flex-1">
+          <div className="flex items-center gap-4 px-4 py-3">
+            <div className="flex-1 space-y-1.5">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">
                   {generationType && GENERATION_LABELS[generationType]}
                 </span>
-                <span className="text-sm text-muted-foreground">
+                <Badge variant="secondary">
                   {doneCount}/{totalCount} termine{doneCount > 1 ? "s" : ""}
-                </span>
+                </Badge>
+                {completedCount > 0 && (
+                  <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                    {completedCount} reussi{completedCount > 1 ? "s" : ""}
+                  </Badge>
+                )}
+                {failedCount > 0 && (
+                  <Badge variant="destructive">
+                    {failedCount} echoue{failedCount > 1 ? "s" : ""}
+                  </Badge>
+                )}
                 {hasActiveJobs && (
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
                 )}
               </div>
-              {/* Progress bar */}
-              <div className="mt-1.5 h-1.5 w-full rounded-full bg-muted overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-primary transition-all duration-300"
-                  style={{
-                    width: `${totalCount > 0 ? (doneCount / totalCount) * 100 : 0}%`,
-                  }}
-                />
-              </div>
+              <Progress value={totalCount > 0 ? (doneCount / totalCount) * 100 : 0} />
             </div>
 
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-2"
-              onClick={() => setTrackingExpanded(!trackingExpanded)}
-            >
-              {trackingExpanded ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronUp className="h-4 w-4" />
-              )}
-            </Button>
-
-            <Button
-              size="sm"
-              variant="ghost"
-              className="h-7 px-2"
-              onClick={handleClose}
-              disabled={hasActiveJobs}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Job list */}
-          {trackingExpanded && (
-            <>
-              <ScrollArea className="max-h-[300px]">
-                {jobStates.map((job) => (
-                  <JobRow
-                    key={job.productId}
-                    job={job}
-                    storeId={storeId}
-                    generationType={generationType!}
-                  />
-                ))}
-              </ScrollArea>
-
-              {/* Batch actions */}
+            <div className="flex items-center gap-2">
               {completedJobs.length > 0 && !hasActiveJobs && (
-                <div className="flex items-center justify-end gap-2 px-4 py-2 border-t">
+                <>
                   <Button
                     size="sm"
                     variant="outline"
@@ -429,19 +460,61 @@ export function BulkActionBar({
                     <Upload className="h-3.5 w-3.5 mr-1.5" />
                     Tout publier ({completedJobs.length})
                   </Button>
-                </div>
+                </>
               )}
-            </>
-          )}
+
+              <CollapsibleTrigger asChild>
+                <Button size="sm" variant="ghost" className="h-7 px-2">
+                  {trackingExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2"
+                onClick={handleClose}
+                disabled={hasActiveJobs}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Job list */}
+          <CollapsibleContent>
+            {/* Table header */}
+            <div className={`${JOB_ROW_GRID} border-t border-b bg-muted/50 text-xs font-medium text-muted-foreground`}>
+              <span>Produit</span>
+              <span>Statut</span>
+              <span>Apercu</span>
+              <span>Actions</span>
+            </div>
+
+            <div className="max-h-80 overflow-y-auto">
+              {jobStates.map((job) => (
+                <JobRow
+                  key={job.productId}
+                  job={job}
+                  storeId={storeId}
+                  generationType={generationType!}
+                />
+              ))}
+            </div>
+          </CollapsibleContent>
         </div>
-      </div>
+      </Collapsible>
     );
   }
 
   // Mode 1: Selection (no generation running)
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-200">
-      <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-3 shadow-lg">
+    <div className="rounded-lg border bg-background px-4 py-3 animate-in fade-in duration-200">
+      <div className="flex items-center gap-3">
         <span className="text-sm font-medium whitespace-nowrap">
           {selectedCount} produit{selectedCount > 1 ? "s" : ""} selectionne
           {selectedCount > 1 ? "s" : ""}

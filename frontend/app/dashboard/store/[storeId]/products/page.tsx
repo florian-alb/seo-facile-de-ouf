@@ -189,6 +189,23 @@ export default function ProductsPage() {
         onClearFilters={handleClearFilters}
       />
 
+      {/* Bulk Action Bar */}
+      <BulkActionBar
+        selectedCount={selectedProductIds.size}
+        storeId={storeId}
+        onClearSelection={handleClearSelection}
+        onBulkGenerate={handleBulkGenerate}
+        isGenerating={isGenerating}
+        jobStates={jobStatesArray}
+        generationType={generationType}
+        totalCount={totalCount}
+        completedCount={completedCount}
+        failedCount={failedCount}
+        doneCount={doneCount}
+        hasActiveJobs={hasActiveJobs}
+        onReset={resetBulk}
+      />
+
       {/* Error State */}
       {error && (
         <Alert variant="destructive">
@@ -219,22 +236,6 @@ export default function ProductsPage() {
         />
       )}
 
-      {/* Bulk Action Bar */}
-      <BulkActionBar
-        selectedCount={selectedProductIds.size}
-        storeId={storeId}
-        onClearSelection={handleClearSelection}
-        onBulkGenerate={handleBulkGenerate}
-        isGenerating={isGenerating}
-        jobStates={jobStatesArray}
-        generationType={generationType}
-        totalCount={totalCount}
-        completedCount={completedCount}
-        failedCount={failedCount}
-        doneCount={doneCount}
-        hasActiveJobs={hasActiveJobs}
-        onReset={resetBulk}
-      />
     </div>
   );
 }
