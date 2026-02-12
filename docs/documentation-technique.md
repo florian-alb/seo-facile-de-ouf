@@ -217,16 +217,21 @@ La sidebar de navigation à gauche liste toutes les boutiques avec un accès rap
 
 ### 3.4 Gestion des boutiques
 
-L'utilisateur peut connecter plusieurs boutiques Shopify à EasySeo :
+L'utilisateur peut connecter plusieurs boutiques Shopify à EasySeo via **OAuth Authorization Code Grant**. Une seule application Shopify (EasySeo) est utilisée pour tous les marchands.
 
 **Ajout d'une boutique :**
-Un dialog permet de renseigner le nom de la boutique, le domaine Shopify (xxx.myshopify.com), le Client ID et le Client Secret. Les credentials sont chiffrés en AES-256-GCM avant stockage.
+Un dialog permet de renseigner le nom de la boutique, le domaine Shopify (xxx.myshopify.com) et la langue. En validant, l'utilisateur est **redirigé vers l'écran de consentement Shopify** où il autorise l'application EasySeo à accéder à sa boutique. Après autorisation, Shopify redirige l'utilisateur vers le callback de l'API, qui échange le code d'autorisation contre un **token d'accès offline** (permanent). L'utilisateur est ensuite redirigé vers le dashboard avec une notification de succès.
+
+![Flux OAuth Shopify](images/shopify-app-auth.png)
+
+**Reconnexion :**
+Si une boutique est déconnectée (token révoqué, app désinstallée), un bouton "Reconnecter" relance le flux OAuth pour obtenir un nouveau token.
 
 **Modification :**
-Les informations et credentials d'une boutique peuvent être mis à jour via un dialog d'édition.
+Les informations d'une boutique (nom, URL, domaine, langue) peuvent être mises à jour via un dialog d'édition.
 
 **Navigation multi-boutiques :**
-La sidebar affiche toutes les boutiques avec des indicateurs de statut (connectée / déconnectée). Chaque boutique donne accès à ses sections : Collections, Produits, Paramètres.
+La sidebar affiche toutes les boutiques avec des indicateurs de statut (connectée / en attente / déconnectée). Chaque boutique donne accès à ses sections : Collections, Produits, Paramètres.
 
 ### 3.5 Gestion des produits
 
@@ -660,8 +665,15 @@ Ce service gère :
 - Les paramètres SEO de chaque boutique
 - La publication des modifications vers Shopify
 
-**Connexion Shopify :**
-L'utilisateur fournit ses identifiants API Shopify (Client ID et Client Secret) qui sont **chiffrés en AES-256-GCM** avant d'être stockés en base. Le service utilise l'API GraphQL de Shopify pour synchroniser les produits et collections.
+**Connexion Shopify via OAuth :**
+EasySeo utilise une seule application Shopify avec le flux **OAuth Authorization Code Grant**. Quand un marchand ajoute sa boutique, il est redirigé vers l'écran de consentement Shopify. Après autorisation, le service reçoit un code d'autorisation qu'il échange contre un **token d'accès offline** (permanent, pas besoin de refresh). Ce token est **chiffré en AES-256-GCM** avant stockage en base.
+
+Le flux OAuth est sécurisé par :
+- **HMAC-SHA256** : vérification de la signature Shopify sur le callback avec `crypto.timingSafeEqual`
+- **Signed state** : le paramètre `state` contient le `storeId` et un `nonce` signés par HMAC, permettant d'identifier le store de retour du callback sans session utilisateur
+- **Nonce** : protection CSRF, vérifié à la réception du callback puis supprimé
+
+Le service utilise l'API GraphQL de Shopify pour synchroniser les produits et collections.
 
 **Store Settings :**
 Chaque boutique a des paramètres SEO personnalisables :
@@ -753,12 +765,10 @@ Stocke les tokens de vérification email avec une date d'expiration.
 | name | varchar (NN) | Nom de la boutique |
 | url | varchar (NN) | URL du site |
 | shopifyDomain | varchar (unique, NN) | Domaine Shopify (xxx.myshopify.com) |
-| language | varchar | Langue par défaut |
-| status | varchar | Statut de connexion |
-| clientId | varchar (NN) | Client ID Shopify (chiffré) |
-| clientSecret | varchar (NN) | Client Secret Shopify (chiffré) |
-| accessToken | text | Token d'accès Shopify (chiffré) |
-| tokenExpiresAt | timestamp | Expiration du token |
+| language | varchar | Langue par défaut (fr) |
+| status | varchar | Statut de connexion (pending, connected, disconnected) |
+| accessToken | text | Token d'accès offline Shopify (chiffré AES-256-GCM, permanent) |
+| nonce | varchar | Nonce temporaire pour la protection CSRF du flux OAuth |
 | lastSyncedAt | timestamp | Dernière synchronisation |
 
 **Table `store_settings`** :
@@ -862,7 +872,8 @@ Un dialog permet de connecter une boutique Shopify en renseignant :
 - Nom et URL de la boutique
 - Domaine Shopify (xxx.myshopify.com)
 - Langue
-- Client ID et Client Secret / Access Token Shopify
+
+Après validation, l'utilisateur est redirigé vers l'écran de consentement Shopify OAuth. Une fois l'autorisation accordée, il est automatiquement redirigé vers le dashboard avec une notification de succès.
 
 ![Architecture globale](images/add-store.png)
 
@@ -1036,7 +1047,7 @@ Les plugins Better Auth utilisés :
 
 ### 10.3 Chiffrement des données sensibles
 
-Les credentials Shopify (Client ID, Client Secret, Access Token) sont **chiffrés en AES-256-GCM** avant d'être stockés en base.
+Le token d'accès Shopify (offline access token) est **chiffré en AES-256-GCM** avant d'être stocké en base. Contrairement à l'ancien système qui stockait un Client ID et un Client Secret par boutique, le flux OAuth utilise un seul couple de credentials applicatifs (variables d'environnement `SHOPIFY_CLIENT_ID` / `SHOPIFY_CLIENT_SECRET`), et seul le token d'accès obtenu via OAuth est stocké en base de manière chiffrée.
 
 Le chiffrement fonctionne ainsi :
 
@@ -1045,7 +1056,7 @@ Le chiffrement fonctionne ainsi :
 - Le tout est stocké en JSON dans la base : `{iv, data, tag}` en hexadécimal
 - Le déchiffrement utilise les mêmes éléments pour retrouver la valeur originale
 
-Ce chiffrement garantit que même si la base de données est compromise, les credentials Shopify ne sont pas exploitables sans la clé.
+Ce chiffrement garantit que même si la base de données est compromise, le token d'accès Shopify n'est pas exploitable sans la clé.
 
 ### 10.4 Sécurité inter-services
 
@@ -1171,17 +1182,24 @@ Voici le récapitulatif complet des endpoints exposés par l'API Gateway :
 | POST    | `/api/auth/sign-out` | Déconnexion               |
 | GET     | `/auth/me`           | Info utilisateur connecté |
 
+### Shopify OAuth (Shop API - pas d'auth requise)
+
+| Méthode | Route                      | Description                                              |
+| ------- | -------------------------- | -------------------------------------------------------- |
+| GET     | `/shopify/auth/callback`   | Callback OAuth Shopify (vérifie HMAC, échange le code)   |
+
 ### Stores (Shop API - auth requise)
 
-| Méthode | Route                       | Description                          |
-| ------- | --------------------------- | ------------------------------------ |
-| GET     | `/stores`                   | Liste des boutiques de l'utilisateur |
-| POST    | `/stores`                   | Ajouter une boutique                 |
-| GET     | `/stores/:storeId`          | Détail d'une boutique                |
-| PUT     | `/stores/:storeId`          | Modifier une boutique                |
-| DELETE  | `/stores/:storeId`          | Supprimer une boutique               |
-| GET     | `/stores/:storeId/settings` | Paramètres SEO du store              |
-| PUT     | `/stores/:storeId/settings` | Modifier les paramètres SEO          |
+| Méthode | Route                        | Description                          |
+| ------- | ---------------------------- | ------------------------------------ |
+| GET     | `/stores`                    | Liste des boutiques de l'utilisateur |
+| POST    | `/stores`                    | Ajouter une boutique (retourne oauthUrl) |
+| GET     | `/stores/:storeId`           | Détail d'une boutique                |
+| PUT     | `/stores/:storeId`           | Modifier une boutique                |
+| DELETE  | `/stores/:storeId`           | Supprimer une boutique               |
+| POST    | `/stores/:storeId/reconnect` | Relancer le flux OAuth (reconnexion) |
+| GET     | `/stores/:storeId/settings`  | Paramètres SEO du store              |
+| PUT     | `/stores/:storeId/settings`  | Modifier les paramètres SEO          |
 
 ### Produits (Shop API - auth requise)
 

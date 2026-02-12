@@ -1,85 +1,154 @@
 /**
  * Token Service
- * Handles Shopify OAuth2 client credentials token exchange
+ * Handles Shopify OAuth Authorization Code Grant
  */
 
-interface TokenResponse {
-  access_token: string;
-  scope: string;
-  expires_in: number;
-  associated_user_scope: string;
-  associated_user: {
-    id: number;
-    first_name: string;
-    last_name: string;
-    email: string;
-    email_verified: boolean;
-    account_owner: boolean;
-    locale: string;
-    collaborator: boolean;
-  };
+import crypto from "crypto";
+
+const SHOPIFY_CLIENT_ID = process.env.SHOPIFY_CLIENT_ID!;
+const SHOPIFY_CLIENT_SECRET = process.env.SHOPIFY_CLIENT_SECRET!;
+const SHOPIFY_SCOPES =
+  process.env.SHOPIFY_SCOPES || "read_products,write_products,read_customers";
+
+/**
+ * Build the Shopify OAuth authorize URL
+ */
+export function buildAuthorizeUrl(
+  shopifyDomain: string,
+  redirectUri: string,
+  state: string
+): string {
+  const params = new URLSearchParams({
+    client_id: SHOPIFY_CLIENT_ID,
+    scope: SHOPIFY_SCOPES,
+    redirect_uri: redirectUri,
+    state,
+  });
+
+  return `https://${shopifyDomain}/admin/oauth/authorize?${params.toString()}`;
 }
 
 /**
- * Exchange client credentials for an access token
- * @param shopifyDomain - The Shopify domain (e.g., "myshop.myshopify.com")
- * @param clientId - Shopify API client ID
- * @param clientSecret - Shopify API client secret
- * @returns Access token and expiration date
+ * Exchange authorization code for an offline access token
+ * Offline tokens are permanent and do not expire
  */
-export async function exchangeTokenWithShopify(
+export async function exchangeCodeForToken(
   shopifyDomain: string,
-  clientId: string,
-  clientSecret: string
-): Promise<{ accessToken: string; expiresAt: Date }> {
+  code: string
+): Promise<string> {
   const url = `https://${shopifyDomain}/admin/oauth/access_token`;
 
   const params = new URLSearchParams({
-    grant_type: "client_credentials",
-    client_id: clientId,
-    client_secret: clientSecret,
+    client_id: SHOPIFY_CLIENT_ID,
+    client_secret: SHOPIFY_CLIENT_SECRET,
+    code,
   });
 
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+    },
+    body: params.toString(),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Shopify token exchange failed (${response.status}): ${errorText}`
+    );
+  }
+
+  const data = await response.json();
+  return data.access_token;
+}
+
+/**
+ * Generate a cryptographically secure nonce
+ */
+export function generateNonce(): string {
+  return crypto.randomBytes(16).toString("hex");
+}
+
+/**
+ * Build a signed state parameter: base64url({storeId, nonce}).hmac
+ * Used to pass storeId through the OAuth redirect securely
+ */
+export function buildSignedState(storeId: string, nonce: string): string {
+  const payload = Buffer.from(JSON.stringify({ storeId, nonce })).toString(
+    "base64url"
+  );
+  const signature = crypto
+    .createHmac("sha256", process.env.ENCRYPTION_KEY!)
+    .update(payload)
+    .digest("hex");
+
+  return `${payload}.${signature}`;
+}
+
+/**
+ * Verify and parse a signed state parameter
+ * Returns null if signature is invalid
+ */
+export function verifySignedState(
+  state: string
+): { storeId: string; nonce: string } | null {
+  const parts = state.split(".");
+  if (parts.length !== 2) return null;
+
+  const [payload, signature] = parts;
+  if (!payload || !signature) return null;
+
+  const expectedSignature = crypto
+    .createHmac("sha256", process.env.ENCRYPTION_KEY!)
+    .update(payload)
+    .digest("hex");
+
   try {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: params.toString(),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Shopify token exchange failed (${response.status}): ${errorText}`
-      );
+    if (
+      !crypto.timingSafeEqual(
+        Buffer.from(signature, "hex"),
+        Buffer.from(expectedSignature, "hex")
+      )
+    ) {
+      return null;
     }
+  } catch {
+    return null;
+  }
 
-    const data: TokenResponse = await response.json();
-
-    // Calculate expiration (default 24h if not provided)
-    const expiresInSeconds = data.expires_in || 86400; // 24 hours
-    const expiresAt = new Date(Date.now() + expiresInSeconds * 1000);
-
-    return {
-      accessToken: data.access_token,
-      expiresAt,
-    };
-  } catch (error: any) {
-    console.error("Token exchange error:", error);
-    throw new Error(`Failed to exchange credentials: ${error.message}`);
+  try {
+    return JSON.parse(Buffer.from(payload, "base64url").toString());
+  } catch {
+    return null;
   }
 }
 
 /**
- * Check if a token is expired or will expire soon (within 5 minutes)
- * @param expiresAt - Token expiration date
- * @returns True if token needs refresh
+ * Verify Shopify callback HMAC
+ * Shopify signs callback query params with the app secret
  */
-export function isTokenExpired(expiresAt: Date | null): boolean {
-  if (!expiresAt) return true;
+export function verifyShopifyHmac(query: Record<string, string>): boolean {
+  const { hmac, ...rest } = query;
+  if (!hmac) return false;
 
-  const fiveMinutesFromNow = new Date(Date.now() + 5 * 60 * 1000);
-  return expiresAt <= fiveMinutesFromNow;
+  const message = Object.keys(rest)
+    .sort()
+    .map((key) => `${key}=${rest[key]}`)
+    .join("&");
+
+  const computedHmac = crypto
+    .createHmac("sha256", SHOPIFY_CLIENT_SECRET)
+    .update(message)
+    .digest("hex");
+
+  try {
+    return crypto.timingSafeEqual(
+      Buffer.from(hmac, "hex"),
+      Buffer.from(computedHmac, "hex")
+    );
+  } catch {
+    return false;
+  }
 }

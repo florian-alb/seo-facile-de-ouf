@@ -7,25 +7,23 @@ datasource db {
   provider = "postgresql"
 }
 
-// Store model - contains Shopify shop credentials and OAuth tokens
+// Store model - contains Shopify shop OAuth tokens
 model Store {
-  id             String              @id @default(uuid())
-  userId         String // Reference to User in users-api (cross-service)
-  name           String
-  url            String
-  shopifyDomain  String              @unique
-  language       String              @default("fr")
-  status         String              @default("pending") // pending, connected, error
-  clientId       String
-  clientSecret   String
-  accessToken    String? // Access token from client credentials grant
-  tokenExpiresAt DateTime? // Token expiration time (24h from grant)
-  lastSyncedAt   DateTime?
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
-  collections    ShopifyCollection[]
-  products       ShopifyProduct[]
-  settings       StoreSettings?
+  id            String              @id @default(uuid())
+  userId        String // Reference to User in users-api (cross-service)
+  name          String
+  url           String
+  shopifyDomain String              @unique
+  language      String              @default("fr")
+  status        String              @default("pending") // pending, connected, error
+  accessToken   String? // Encrypted offline access token (permanent)
+  nonce         String? // OAuth state nonce (temporary, cleared after callback)
+  lastSyncedAt  DateTime?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  collections   ShopifyCollection[]
+  products      ShopifyProduct[]
+  settings      StoreSettings?
 
   @@index([userId])
   @@map("store")

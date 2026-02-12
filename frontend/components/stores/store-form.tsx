@@ -59,8 +59,6 @@ export function StoreForm({
       url: defaultValues?.url ?? "",
       shopifyDomain: defaultValues?.shopifyDomain ?? "",
       language: defaultValues?.language ?? "fr",
-      clientId: defaultValues?.clientId ?? "",
-      clientSecret: defaultValues?.clientSecret ?? "",
     },
   });
 
@@ -129,36 +127,6 @@ export function StoreForm({
           )}
         </Field>
 
-        <Field>
-          <FieldLabel htmlFor="client-id">Shopify Client ID</FieldLabel>
-          <Input
-            id="client-id"
-            type="password"
-            placeholder="Votre Client ID"
-            {...register("clientId")}
-          />
-          {errors.clientId?.message && (
-            <FieldError>{errors.clientId.message}</FieldError>
-          )}
-        </Field>
-
-        <Field>
-          <FieldLabel htmlFor="client-secret">
-            Shopify Client Secret / Access Token
-          </FieldLabel>
-          <Input
-            id="client-secret"
-            type="password"
-            placeholder="shpss_..."
-            {...register("clientSecret")}
-          />
-          <FieldDescription>
-            Doit commencer par &quot;shpss_&quot;
-          </FieldDescription>
-          {errors.clientSecret?.message && (
-            <FieldError>{errors.clientSecret.message}</FieldError>
-          )}
-        </Field>
       </FieldGroup>
 
       <div className="flex gap-3 mt-6">
