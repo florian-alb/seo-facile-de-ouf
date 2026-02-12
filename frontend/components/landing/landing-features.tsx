@@ -80,7 +80,7 @@ export default function LandingFeatures() {
             Tout ce qu&apos;il faut pour un SEO parfait
           </h2>
           <p className="mt-4 text-muted-foreground">
-            De la synchronisation Shopify à la publication, SEO Facile couvre
+            De la synchronisation Shopify à la publication, EasySEO couvre
             l&apos;ensemble du workflow SEO e-commerce.
           </p>
         </div>

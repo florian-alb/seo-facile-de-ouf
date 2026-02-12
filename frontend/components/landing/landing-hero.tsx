@@ -56,7 +56,7 @@ export default function LandingHero() {
                 <div className="size-3 rounded-full bg-yellow-400" />
                 <div className="size-3 rounded-full bg-green-400" />
                 <span className="ml-2 text-xs text-muted-foreground">
-                  SEO Facile — Génération en cours
+                  EasySEO — Génération en cours
                 </span>
               </div>
 

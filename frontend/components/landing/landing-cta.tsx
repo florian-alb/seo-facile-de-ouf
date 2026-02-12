@@ -15,7 +15,7 @@ export default function LandingCta() {
           </h2>
           <p className="mt-4 text-lg text-muted-foreground">
             Rejoignez les marchands qui gagnent des heures de rédaction chaque
-            semaine grâce à SEO Facile.
+            semaine grâce à EasySEO.
           </p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <Button size="lg" asChild>

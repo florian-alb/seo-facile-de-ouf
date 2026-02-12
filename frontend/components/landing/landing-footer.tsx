@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { Leaf } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { SeoEasyLogo } from "@/components/icons/logo-easy-seo";
 
 const footerLinks = [
   {
@@ -40,8 +40,8 @@ export default function LandingFooter() {
               href="/"
               className="flex items-center gap-2 font-bold text-lg"
             >
-              <Leaf className="size-5 text-primary" />
-              SEO Facile
+              <SeoEasyLogo className="size-8! rounded-lg aspect-square" />
+              EasySEO
             </Link>
             <p className="mt-3 text-sm text-muted-foreground">
               Générez du contenu SEO optimisé pour vos produits Shopify grâce à
@@ -73,7 +73,7 @@ export default function LandingFooter() {
 
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p className="text-xs text-muted-foreground">
-            &copy; {new Date().getFullYear()} SEO Facile. Tous droits réservés.
+            &copy; {new Date().getFullYear()} EasySEO. Tous droits réservés.
           </p>
           <p className="text-xs text-muted-foreground">
             Fait avec soin en France

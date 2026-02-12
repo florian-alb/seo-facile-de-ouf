@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const jetbrainsMono = JetBrains_Mono({subsets:['latin'],variable:'--font-sans'});
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-sans' });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SEO Facile - Générez vos fiches produits Shopify avec l'IA",
+  title: "EasySEO - Générez vos fiches produits Shopify avec l'IA",
   description:
     "Générez automatiquement des descriptions produits, meta-titres et meta-descriptions SEO optimisés pour votre boutique Shopify grâce à l'IA.",
 };
