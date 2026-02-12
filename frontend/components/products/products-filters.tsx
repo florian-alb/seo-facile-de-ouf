@@ -11,31 +11,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useShopifyCollections } from "@/hooks/use-shopify-collections";
 import type { ProductFilters } from "@seo-facile-de-ouf/shared/src/shopify-products";
+import type { ShopifyCollection } from "@seo-facile-de-ouf/shared/src/shopify-collections";
 
 interface ProductsFiltersProps {
-  storeId: string;
   filters: ProductFilters;
+  collections: ShopifyCollection[];
+  productTypes: string[];
+  tags: string[];
   onFilterChange: (filters: Partial<ProductFilters>) => void;
   onClearFilters: () => void;
   onSearch: (search: string) => void;
 }
 
 export function ProductsFilters({
-  storeId,
   filters,
+  collections,
+  productTypes,
+  tags,
   onFilterChange,
   onClearFilters,
   onSearch,
 }: ProductsFiltersProps) {
   const [searchValue, setSearchValue] = useState(filters.search || "");
-  const { collections } = useShopifyCollections(storeId);
 
   // Debounce search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchValue !== filters.search) {
+      if (searchValue !== (filters.search ?? "")) {
         onSearch(searchValue);
       }
     }, 300);
@@ -43,7 +46,9 @@ export function ProductsFilters({
     return () => clearTimeout(timer);
   }, [searchValue, filters.search, onSearch]);
 
-  const hasActiveFilters = filters.collectionId || filters.search || filters.status;
+  const hasActiveFilters =
+    filters.collectionId || filters.search || filters.status ||
+    filters.productType || filters.tag;
 
   return (
     <div className="flex flex-wrap gap-3">
@@ -87,6 +92,50 @@ export function ProductsFilters({
           ))}
         </SelectContent>
       </Select>
+
+      {/* ProductType Filter */}
+      {productTypes.length > 0 && (
+        <Select
+          value={filters.productType || "all"}
+          onValueChange={(value) =>
+            onFilterChange({ productType: value === "all" ? undefined : value })
+          }
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Type de produit" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les types</SelectItem>
+            {productTypes.map((type) => (
+              <SelectItem key={type} value={type}>
+                {type}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
+
+      {/* Tags Filter */}
+      {tags.length > 0 && (
+        <Select
+          value={filters.tag || "all"}
+          onValueChange={(value) =>
+            onFilterChange({ tag: value === "all" ? undefined : value })
+          }
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Tag" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tous les tags</SelectItem>
+            {tags.map((tag) => (
+              <SelectItem key={tag} value={tag}>
+                {tag}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      )}
 
       {/* Status Filter */}
       <Select

@@ -186,9 +186,10 @@ router.get("/job/:id", async (req: Request, res: Response) => {
 // ═══════════════════════════════════════════════════════════
 // POST /generate/bulk - Générer plusieurs produits
 // ═══════════════════════════════════════════════════════════
-router.post("/generate/bulk", async (req: Request, res: Response) => {
+router.post("/generate/bulk", async (req: GatewayAuthenticatedRequest, res: Response) => {
   try {
-    const { products, userId, shopId, type } = req.body;
+    const { products, shopId, type, storeSettings } = req.body;
+    const userId = req.userId;
 
     if (!Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ error: "Products array required" });
@@ -198,20 +199,31 @@ router.post("/generate/bulk", async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Max 50 products per batch" });
     }
 
+    if (!shopId || !userId) {
+      return res.status(400).json({ error: "Missing required fields: shopId" });
+    }
+
+    const fieldType = type || "full_description";
+
     const jobs = await Promise.all(
       products.map(async (product) => {
         const generation = await Generation.create({
+          entityType: "product",
           productId: product.id,
           productName: product.name,
           keywords: product.keywords || [],
+          fieldType,
           userId,
           shopId,
+          storeSettings: storeSettings || undefined,
+          productContext: product.productContext || undefined,
           status: "pending",
         });
 
         await publishJob({
           jobId: generation._id.toString(),
-          type: type || "full_description",
+          type: fieldType,
+          entityType: "product",
         });
 
         return {
@@ -227,7 +239,9 @@ router.post("/generate/bulk", async (req: Request, res: Response) => {
       jobs,
     });
   } catch (error) {
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error creating bulk generation:", error);
+    const message = error instanceof Error ? error.message : "Internal server error";
+    res.status(500).json({ error: message });
   }
 });
 

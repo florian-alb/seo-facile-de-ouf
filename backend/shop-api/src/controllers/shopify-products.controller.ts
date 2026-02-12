@@ -19,11 +19,26 @@ export async function getProducts(req: Request, res: Response) {
     if (req.query.collectionId) filters.collectionId = req.query.collectionId as string;
     if (req.query.search) filters.search = req.query.search as string;
     if (req.query.status) filters.status = req.query.status as "ACTIVE" | "DRAFT" | "ARCHIVED";
+    if (req.query.productType) filters.productType = req.query.productType as string;
+    if (req.query.tag) filters.tag = req.query.tag as string;
 
     const result = await productsService.getProducts(shopId, userId, page, limit, filters);
     res.json(result);
   } catch (error) {
     handleServiceError(res, error, "Failed to fetch products");
+  }
+}
+
+export async function getFilterOptions(req: Request, res: Response) {
+  try {
+    const shopId = getParam(req, "shopId");
+    const userId = getRequiredUserId(req, res);
+    if (!userId) return;
+
+    const options = await productsService.getFilterOptions(shopId, userId);
+    res.json(options);
+  } catch (error) {
+    handleServiceError(res, error, "Failed to fetch filter options");
   }
 }
 

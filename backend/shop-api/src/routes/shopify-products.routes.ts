@@ -11,6 +11,7 @@ router.use(gatewayGuard);
 router.use(requireAuth);
 
 router.get("/shops/:shopId/products", productsController.getProducts);
+router.get("/shops/:shopId/products/filter-options", productsController.getFilterOptions);
 router.post("/shops/:shopId/products/sync", productsController.syncProducts);
 router.get(
   "/shops/:shopId/products/:productId",

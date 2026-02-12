@@ -32,6 +32,13 @@ export interface ProductFilters {
   status?: ProductStatus;
   minPrice?: number;
   maxPrice?: number;
+  productType?: string;
+  tag?: string;
+}
+
+export interface ProductFilterOptions {
+  productTypes: string[];
+  tags: string[];
 }
 
 export interface SyncProductsResponse {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import type {
   Pagination,
   PaginatedResponse,
@@ -28,9 +28,14 @@ export function useEntityList<T, F = void>({
   const [isLoading, setIsLoading] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const filtersRef = useRef<F | undefined>(undefined);
 
   const fetchItems = useCallback(
     async (page: number = 1, limit: number = 10, filters?: F) => {
+      if (filters !== undefined) {
+        filtersRef.current = filters;
+      }
+
       setIsLoading(true);
       setError(null);
 
@@ -39,8 +44,9 @@ export function useEntityList<T, F = void>({
         params.set("page", String(page));
         params.set("limit", String(limit));
 
-        if (buildParams && filters) {
-          const extra = buildParams(filters);
+        const activeFilters = filters !== undefined ? filters : filtersRef.current;
+        if (buildParams && activeFilters) {
+          const extra = buildParams(activeFilters);
           for (const [key, value] of Object.entries(extra)) {
             if (value) params.set(key, value);
           }

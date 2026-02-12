@@ -274,6 +274,8 @@ export async function getProducts(
       ],
     }),
     ...(filters?.status && { status: filters.status }),
+    ...(filters?.productType && { productType: filters.productType }),
+    ...(filters?.tag && { tags: { has: filters.tag } }),
   };
 
   const [products, total] = await Promise.all([
@@ -294,6 +296,44 @@ export async function getProducts(
       total,
       totalPages: Math.ceil(total / limit),
     },
+  };
+}
+
+export async function getFilterOptions(
+  storeId: string,
+  userId: string,
+): Promise<{ productTypes: string[]; tags: string[] }> {
+  const store = await prisma.store.findUnique({
+    where: { id: storeId },
+  });
+
+  if (!store) {
+    throw new Error("Store not found");
+  }
+
+  if (store.userId !== userId) {
+    throw new Error("Unauthorized: User does not own this store");
+  }
+
+  const productTypeResults = await prisma.shopifyProduct.findMany({
+    where: { storeId, productType: { not: null } },
+    select: { productType: true },
+    distinct: ["productType"],
+    orderBy: { productType: "asc" },
+  });
+
+  const tagResults = await prisma.$queryRaw<Array<{ tag: string }>>`
+    SELECT DISTINCT unnest(tags) as tag
+    FROM "shopify_product"
+    WHERE "storeId" = ${storeId}
+    ORDER BY tag ASC
+  `;
+
+  return {
+    productTypes: productTypeResults
+      .map((r) => r.productType)
+      .filter((v): v is string => v !== null),
+    tags: tagResults.map((r) => r.tag),
   };
 }
 

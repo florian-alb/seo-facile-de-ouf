@@ -13,6 +13,8 @@ interface ProductsTableProps {
   storeId: string;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
+  selectedProductIds?: Set<string>;
+  onSelectionChange?: (selectedIds: Set<string>) => void;
 }
 
 export function ProductsTable({
@@ -22,8 +24,12 @@ export function ProductsTable({
   storeId,
   onPageChange,
   onPageSizeChange,
+  selectedProductIds,
+  onSelectionChange,
 }: ProductsTableProps) {
-  const columns = createColumns(collections, storeId);
+  const selectable = !!onSelectionChange;
+  const columns = createColumns(collections, storeId, selectable);
+
   return (
     <DataTable
       columns={columns}
@@ -31,6 +37,10 @@ export function ProductsTable({
       serverPagination={pagination}
       onPageChange={onPageChange}
       onPageSizeChange={onPageSizeChange}
+      enableRowSelection={selectable}
+      selectedRowIds={selectedProductIds}
+      getRowId={(product) => product.id}
+      onSelectionChange={onSelectionChange}
     />
   );
 }
