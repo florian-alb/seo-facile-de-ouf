@@ -26,8 +26,9 @@ export function StoresSection() {
   const handleAddStore = async (values: ShopifyStoreFormValues) => {
     try {
       setIsSubmitting(true);
-      await addStore(values);
-      // OAuth flow will redirect, no need to close dialog
+      const oauthUrl = await addStore(values);
+      // Redirect browser to Shopify OAuth consent screen
+      window.location.href = oauthUrl;
     } catch {
       toast.error("Erreur lors de l'ajout de la boutique.");
       setIsSubmitting(false);
@@ -108,8 +109,6 @@ export function StoresSection() {
             url: editingStore.url,
             shopifyDomain: editingStore.shopifyDomain,
             language: editingStore.language,
-            clientId: "",
-            clientSecret: "",
           }}
           isSubmitting={isSubmitting}
         />

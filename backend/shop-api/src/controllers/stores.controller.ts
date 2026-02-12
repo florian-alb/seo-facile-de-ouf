@@ -45,33 +45,23 @@ export async function createStore(
 ) {
   try {
     const userId = req.userId!;
-    const { name, url, shopifyDomain, language, clientId, clientSecret } =
-      req.body;
+    const { name, url, shopifyDomain, language } = req.body;
 
-    if (
-      !name ||
-      !url ||
-      !shopifyDomain ||
-      !language ||
-      !clientId ||
-      !clientSecret
-    ) {
+    if (!name || !url || !shopifyDomain || !language) {
       return res.status(400).json({
         error:
-          "Missing required fields: name, url, shopifyDomain, language, clientId, clientSecret",
+          "Missing required fields: name, url, shopifyDomain, language",
       });
     }
 
-    const store = await storeService.createStore(userId, {
+    const result = await storeService.createStore(userId, {
       name,
       url,
       shopifyDomain,
       language,
-      clientId,
-      clientSecret,
     });
 
-    res.status(201).json(store);
+    res.status(201).json(result);
   } catch (err) {
     next(err);
   }
@@ -87,16 +77,12 @@ export async function updateStore(
     const storeId = Array.isArray(req.params.id)
       ? req.params.id[0]
       : req.params.id;
-    const { name, url, shopifyDomain, language, clientId, clientSecret } =
-      req.body;
+    const { name, url, language } = req.body;
 
     const store = await storeService.updateStore(storeId, userId, {
       name,
       url,
-      shopifyDomain,
       language,
-      clientId,
-      clientSecret,
     });
 
     if (!store) {
@@ -104,6 +90,24 @@ export async function updateStore(
     }
 
     res.json(store);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function reconnectStore(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) {
+  try {
+    const userId = req.userId!;
+    const storeId = Array.isArray(req.params.id)
+      ? req.params.id[0]
+      : req.params.id;
+
+    const result = await storeService.initiateReconnect(storeId, userId);
+    res.json(result);
   } catch (err) {
     next(err);
   }

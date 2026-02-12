@@ -22,19 +22,6 @@ export const shopifyStoreSchema = z.object({
   language: z.enum(["fr", "en", "es", "de", "it"], {
     message: "Veuillez sélectionner une langue.",
   }),
-
-  clientId: z
-    .string()
-    .min(1, "Le Client ID est requis.")
-    .min(10, "Le Client ID semble trop court."),
-
-  clientSecret: z
-    .string()
-    .min(1, "Le Client Secret est requis.")
-    .refine(
-      (secret) => secret.startsWith("shpss_"),
-      "Le Client Secret doit commencer par 'shpss_'"
-    ),
 });
 
 export type ShopifyStoreFormSchema = z.infer<typeof shopifyStoreSchema>;

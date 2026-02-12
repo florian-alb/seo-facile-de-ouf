@@ -19,8 +19,17 @@ export type ShopifyStoreFormValues = {
   url: string;
   shopifyDomain: string;
   language: ShopifyStoreLanguage;
-  clientId: string;
-  clientSecret: string;
+};
+
+// Response from POST /stores (includes OAuth URL)
+export type CreateStoreResponse = {
+  store: ShopifyStore;
+  oauthUrl: string;
+};
+
+// Response from POST /stores/:id/reconnect
+export type ReconnectResponse = {
+  oauthUrl: string;
 };
 
 export const LANGUAGE_OPTIONS: {

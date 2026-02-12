@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import type { ShopifyStore, ShopifyStoreFormValues } from "@/types/shopify";
+import type {
+  ShopifyStore,
+  ShopifyStoreFormValues,
+  CreateStoreResponse,
+  ReconnectResponse,
+} from "@/types/shopify";
 import { apiFetch, ApiError } from "@/lib/api";
 
 export function useStores() {
@@ -37,17 +42,17 @@ export function useStores() {
   }, [fetchStores]);
 
   const addStore = useCallback(
-    async (formValues: ShopifyStoreFormValues): Promise<void> => {
-      // Create store in DB with credentials and exchange token automatically
-      await apiFetch<ShopifyStore>("/stores", {
+    async (formValues: ShopifyStoreFormValues): Promise<string> => {
+      // Create store (pending) and get OAuth URL
+      const response = await apiFetch<CreateStoreResponse>("/stores", {
         method: "POST",
         body: JSON.stringify(formValues),
       });
 
-      // Refresh stores list to show connected status
-      await fetchStores();
+      // Return the OAuth URL — the caller will redirect the browser
+      return response.oauthUrl;
     },
-    [fetchStores]
+    []
   );
 
   const updateStore = useCallback(
@@ -96,21 +101,16 @@ export function useStores() {
   );
 
   const retryConnection = useCallback(
-    async (storeId: string): Promise<void> => {
-      // Retry connection by updating the store (triggers token re-exchange)
-      const store = stores.find((s) => s.id === storeId);
-      if (!store) throw new Error("Store not found");
+    async (storeId: string): Promise<string> => {
+      // Initiate reconnect and get new OAuth URL
+      const response = await apiFetch<ReconnectResponse>(
+        `/stores/${storeId}/reconnect`,
+        { method: "POST" }
+      );
 
-      // Trigger update to force token refresh
-      await apiFetch(`/stores/${storeId}`, {
-        method: "PUT",
-        body: JSON.stringify({}),
-      });
-
-      // Refresh stores list to show updated status
-      await fetchStores();
+      return response.oauthUrl;
     },
-    [stores, fetchStores]
+    []
   );
 
   const refreshStores = useCallback(() => {

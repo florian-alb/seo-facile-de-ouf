@@ -14,6 +14,7 @@ router.get("/", storesController.getAllStores);
 router.get("/:id", storesController.getStoreById);
 router.post("/", storesController.createStore);
 router.put("/:id", storesController.updateStore);
+router.post("/:id/reconnect", storesController.reconnectStore);
 router.delete("/:id", storesController.deleteStore);
 
 export default router;

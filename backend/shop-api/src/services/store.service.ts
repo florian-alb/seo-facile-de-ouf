@@ -1,5 +1,10 @@
 import { prisma } from "../lib/prisma";
-import { exchangeTokenWithShopify, isTokenExpired } from "./token.service";
+import {
+  exchangeCodeForToken,
+  buildAuthorizeUrl,
+  generateNonce,
+  buildSignedState,
+} from "./token.service";
 import { encrypt, decrypt } from "@seo-facile-de-ouf/backend-shared";
 
 export interface CreateStoreInput {
@@ -7,17 +12,12 @@ export interface CreateStoreInput {
   url: string;
   shopifyDomain: string;
   language: string;
-  clientId: string;
-  clientSecret: string;
 }
 
 export interface UpdateStoreInput {
   name?: string;
   url?: string;
-  shopifyDomain?: string;
   language?: string;
-  clientId?: string;
-  clientSecret?: string;
 }
 
 export interface StoreResponse {
@@ -32,14 +32,22 @@ export interface StoreResponse {
   updatedAt: Date;
 }
 
+export interface CreateStoreResult {
+  store: StoreResponse;
+  oauthUrl: string;
+}
+
+const REDIRECT_URI = `${process.env.SHOPIFY_HOST_NAME || "http://localhost:4000"}/shopify/auth/callback`;
+
 /**
- * Create a new store and exchange credentials for access token
+ * Create a new store (pending) and return OAuth authorize URL
  */
 export async function createStore(
   userId: string,
   input: CreateStoreInput
-): Promise<StoreResponse> {
-  // Create store with pending status
+): Promise<CreateStoreResult> {
+  const nonce = generateNonce();
+
   const store = await prisma.store.create({
     data: {
       userId,
@@ -47,36 +55,53 @@ export async function createStore(
       url: input.url,
       shopifyDomain: input.shopifyDomain,
       language: input.language,
-      clientId: encrypt(input.clientId),
-      clientSecret: encrypt(input.clientSecret),
       status: "pending",
+      nonce,
     },
   });
 
-  // Exchange credentials for access token
-  try {
-    const { accessToken, expiresAt } = await exchangeTokenWithShopify(
-      input.shopifyDomain,
-      input.clientId,
-      input.clientSecret
-    );
+  const state = buildSignedState(store.id, nonce);
+  const oauthUrl = buildAuthorizeUrl(input.shopifyDomain, REDIRECT_URI, state);
 
-    // Update store with token (encrypted)
-    const updatedStore = await prisma.store.update({
-      where: { id: store.id },
+  return {
+    store: mapStoreToResponse(store),
+    oauthUrl,
+  };
+}
+
+/**
+ * Complete OAuth callback: verify nonce, exchange code, store token
+ */
+export async function completeOAuthCallback(
+  storeId: string,
+  nonce: string,
+  code: string
+): Promise<StoreResponse> {
+  const store = await prisma.store.findUnique({ where: { id: storeId } });
+
+  if (!store) throw new Error("Store not found");
+  if (store.nonce !== nonce)
+    throw new Error("Invalid nonce - possible replay attack");
+  if (store.status === "connected")
+    throw new Error("Store already connected");
+
+  try {
+    const accessToken = await exchangeCodeForToken(store.shopifyDomain, code);
+
+    const updated = await prisma.store.update({
+      where: { id: storeId },
       data: {
         accessToken: encrypt(accessToken),
-        tokenExpiresAt: expiresAt,
         status: "connected",
+        nonce: null,
       },
     });
 
-    return mapStoreToResponse(updatedStore);
+    return mapStoreToResponse(updated);
   } catch (error) {
-    // Mark store as error
     await prisma.store.update({
-      where: { id: store.id },
-      data: { status: "error" },
+      where: { id: storeId },
+      data: { status: "error", nonce: null },
     });
     throw error;
   }
@@ -116,7 +141,7 @@ export async function getStoreById(
 
 /**
  * Get store credentials with access token
- * Automatically refreshes token if expired
+ * Offline tokens are permanent — no refresh needed
  */
 export async function getStoreCredentials(
   storeId: string,
@@ -131,46 +156,8 @@ export async function getStoreCredentials(
 
   if (!store) return null;
 
-  // Decrypt credentials for use
-  const decryptedClientId = decrypt(store.clientId);
-  const decryptedClientSecret = decrypt(store.clientSecret);
-
-  // Check if token needs refresh
-  if (isTokenExpired(store.tokenExpiresAt)) {
-    try {
-      const { accessToken, expiresAt } = await exchangeTokenWithShopify(
-        store.shopifyDomain,
-        decryptedClientId,
-        decryptedClientSecret
-      );
-
-      // Update store with new token (encrypted)
-      await prisma.store.update({
-        where: { id: storeId },
-        data: {
-          accessToken: encrypt(accessToken),
-          tokenExpiresAt: expiresAt,
-          status: "connected",
-        },
-      });
-
-      return {
-        shopifyDomain: store.shopifyDomain,
-        accessToken,
-      };
-    } catch (error) {
-      // Mark store as error
-      await prisma.store.update({
-        where: { id: storeId },
-        data: { status: "error" },
-      });
-      throw error;
-    }
-  }
-
-  // Token is still valid - decrypt it
   if (!store.accessToken) {
-    throw new Error("Store has no access token");
+    throw new Error("Store has no access token — OAuth not completed");
   }
 
   return {
@@ -193,44 +180,11 @@ export async function updateStore(
 
   if (!existing) return null;
 
-  const updateData: any = {};
+  const updateData: Record<string, unknown> = {};
 
   if (input.name !== undefined) updateData.name = input.name;
   if (input.url !== undefined) updateData.url = input.url;
-  if (input.shopifyDomain !== undefined)
-    updateData.shopifyDomain = input.shopifyDomain;
   if (input.language !== undefined) updateData.language = input.language;
-
-  // If credentials are updated, re-exchange for token
-  if (input.clientId !== undefined || input.clientSecret !== undefined) {
-    // Decrypt existing credentials if not updating them
-    const clientId =
-      input.clientId !== undefined
-        ? input.clientId
-        : decrypt(existing.clientId);
-    const clientSecret =
-      input.clientSecret !== undefined
-        ? input.clientSecret
-        : decrypt(existing.clientSecret);
-
-    // Encrypt new credentials
-    updateData.clientId = encrypt(clientId);
-    updateData.clientSecret = encrypt(clientSecret);
-
-    try {
-      const { accessToken, expiresAt } = await exchangeTokenWithShopify(
-        input.shopifyDomain || existing.shopifyDomain,
-        clientId,
-        clientSecret
-      );
-
-      updateData.accessToken = encrypt(accessToken);
-      updateData.tokenExpiresAt = expiresAt;
-      updateData.status = "connected";
-    } catch (error) {
-      updateData.status = "error";
-    }
-  }
 
   const store = await prisma.store.update({
     where: { id: storeId },
@@ -238,6 +192,31 @@ export async function updateStore(
   });
 
   return mapStoreToResponse(store);
+}
+
+/**
+ * Re-initiate OAuth for a store (e.g., after disconnection or error)
+ */
+export async function initiateReconnect(
+  storeId: string,
+  userId: string
+): Promise<{ oauthUrl: string }> {
+  const store = await prisma.store.findFirst({
+    where: { id: storeId, userId },
+  });
+
+  if (!store) throw new Error("Store not found");
+
+  const nonce = generateNonce();
+  await prisma.store.update({
+    where: { id: storeId },
+    data: { nonce, status: "pending", accessToken: null },
+  });
+
+  const state = buildSignedState(storeId, nonce);
+  const oauthUrl = buildAuthorizeUrl(store.shopifyDomain, REDIRECT_URI, state);
+
+  return { oauthUrl };
 }
 
 /**
@@ -258,6 +237,16 @@ export async function deleteStore(
   });
 
   return true;
+}
+
+/**
+ * Disconnect a store (called by APP_UNINSTALLED webhook)
+ */
+export async function disconnectStore(shopifyDomain: string): Promise<void> {
+  await prisma.store.updateMany({
+    where: { shopifyDomain },
+    data: { status: "error", accessToken: null },
+  });
 }
 
 function mapStoreToResponse(store: {
