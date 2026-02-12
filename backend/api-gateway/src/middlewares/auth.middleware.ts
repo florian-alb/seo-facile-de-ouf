@@ -33,15 +33,28 @@ export async function validateSession(
       headers.Authorization = req.headers.authorization;
     }
 
-    const response = await fetch(`${USERS_API_URL}/auth/validate-session`, {
+    const url = `${USERS_API_URL}/auth/validate-session`;
+    const response = await fetch(url, {
       method: "GET",
       headers,
     });
 
     const data = await response.json();
 
+    if (!response.ok) {
+      console.error(
+        `[Gateway] validate-session returned ${response.status}:`,
+        data,
+      );
+    }
+
     if (data.authenticated && data.user) {
       req.user = data.user;
+    } else {
+      console.warn(
+        `[Gateway] Session not authenticated for ${req.method} ${req.originalUrl}`,
+        { status: response.status, hasCookie: !!req.headers.cookie, hasGatewaySecret: !!process.env.GATEWAY_SECRET },
+      );
     }
 
     next();

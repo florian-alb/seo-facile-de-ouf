@@ -3,6 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import Image from "next/image";
 import Link from "next/link";
 import { Eye, Sparkles } from "lucide-react";
@@ -11,13 +12,37 @@ import type { ShopifyCollection } from "@seo-facile-de-ouf/shared/src/shopify-co
 
 export function createColumns(
   collections: ShopifyCollection[],
-  storeId: string
+  storeId: string,
+  selectable: boolean = false
 ): ColumnDef<ShopifyProduct>[] {
   const collectionMap = new Map(
     collections.map((c) => [c.shopifyGid, c.title])
   );
 
-  return [
+  const selectColumn: ColumnDef<ShopifyProduct> = {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && "indeterminate")
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Tout sélectionner"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Sélectionner"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  };
+
+  const dataColumns: ColumnDef<ShopifyProduct>[] = [
     {
       accessorKey: "title",
       header: "Produit",
@@ -106,4 +131,6 @@ export function createColumns(
       },
     },
   ];
+
+  return selectable ? [selectColumn, ...dataColumns] : dataColumns;
 }

@@ -13,6 +13,8 @@ export function useShopifyProducts(storeId: string) {
     if (filters?.collectionId) params.collectionId = filters.collectionId;
     if (filters?.search) params.search = filters.search;
     if (filters?.status) params.status = filters.status;
+    if (filters?.productType) params.productType = filters.productType;
+    if (filters?.tag) params.tag = filters.tag;
     return params;
   }, []);
 

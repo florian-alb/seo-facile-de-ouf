@@ -1,11 +1,13 @@
 "use client";
 
+import { useMemo } from "react";
 import {
   ColumnDef,
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
   useReactTable,
+  RowSelectionState,
 } from "@tanstack/react-table";
 import {
   Table,
@@ -40,6 +42,10 @@ interface DataTableProps<TData, TValue> {
   serverPagination?: PaginationType;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
+  enableRowSelection?: boolean;
+  selectedRowIds?: Set<string>;
+  getRowId?: (row: TData) => string;
+  onSelectionChange?: (selectedIds: Set<string>) => void;
 }
 
 export function DataTable<TData, TValue>({
@@ -49,16 +55,57 @@ export function DataTable<TData, TValue>({
   serverPagination,
   onPageChange,
   onPageSizeChange,
+  enableRowSelection,
+  selectedRowIds,
+  getRowId,
+  onSelectionChange,
 }: DataTableProps<TData, TValue>) {
   const isServerSide = !!serverPagination;
+
+  const rowSelection: RowSelectionState = useMemo(() => {
+    if (!enableRowSelection || !selectedRowIds || !getRowId) return {};
+    const selection: RowSelectionState = {};
+    data.forEach((row) => {
+      const id = getRowId(row);
+      if (selectedRowIds.has(id)) {
+        selection[id] = true;
+      }
+    });
+    return selection;
+  }, [enableRowSelection, selectedRowIds, getRowId, data]);
 
   const table = useReactTable({
     data,
     columns,
+    getRowId: getRowId ? (row) => getRowId(row) : undefined,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: isServerSide ? undefined : getPaginationRowModel(),
     manualPagination: isServerSide,
     pageCount: isServerSide ? serverPagination.totalPages : undefined,
+    enableRowSelection: !!enableRowSelection,
+    onRowSelectionChange: (updater) => {
+      if (!onSelectionChange || !selectedRowIds || !getRowId) return;
+      const newTableSelection =
+        typeof updater === "function" ? updater(rowSelection) : updater;
+
+      const newSet = new Set(selectedRowIds);
+      data.forEach((row) => {
+        const id = getRowId(row);
+        if (newTableSelection[id]) {
+          newSet.add(id);
+        } else {
+          newSet.delete(id);
+        }
+      });
+      onSelectionChange(newSet);
+    },
+    state: {
+      rowSelection: enableRowSelection ? rowSelection : undefined,
+      pagination: {
+        pageSize: serverPagination?.limit ?? pageSizeOptions[0],
+        pageIndex: serverPagination ? serverPagination.page - 1 : 0,
+      },
+    },
     initialState: {
       pagination: {
         pageSize: serverPagination?.limit ?? pageSizeOptions[0],
@@ -135,7 +182,10 @@ export function DataTable<TData, TValue>({
           <TableBody>
             {table.getRowModel().rows?.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow key={row.id}>
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
                       {flexRender(
