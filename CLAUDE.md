@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**SEO Facile** - B2B SaaS platform for e-commerce SEO content generation. Helps merchants Shopify auto-generate SEO-optimized product descriptions using AI (GPT-5, Claude).
+**EasySeo (EasySEO)** - B2B SaaS platform for e-commerce SEO content generation. Helps Shopify merchants auto-generate SEO-optimized product descriptions using AI (GPT-4o, Claude).
 
 ## Quick Start
 
@@ -81,15 +81,15 @@ Frontend (3000) → API Gateway (4000) → Users API (5001) → PostgreSQL (user
 
 ## Services
 
-| Service         | Port        | Database                      | Purpose                                               |
-| --------------- | ----------- | ----------------------------- | ----------------------------------------------------- |
-| frontend        | 3000        | -                             | Next.js web application                               |
-| api-gateway     | 4000        | -                             | Express proxy, routes to microservices                |
-| users-api       | 5001        | PostgreSQL (users_db)         | Auth, users, sessions via Better Auth                 |
-| generations-api | 5002        | MongoDB                       | AI generation jobs, SSE streaming                     |
-| shop-api        | 5003        | PostgreSQL (seo_facile_shops) | Shopify stores, collections, products, settings       |
-| worker          | -           | MongoDB                       | Async AI generation job processor (RabbitMQ consumer) |
-| rabbitmq        | 5672, 15672 | -                             | Message broker (management UI at :15672)              |
+| Service         | Port        | Database                      | Purpose                                                           |
+| --------------- | ----------- | ----------------------------- | ----------------------------------------------------------------- |
+| frontend        | 3000        | -                             | Next.js web application                                           |
+| api-gateway     | 4000        | -                             | Express proxy, routes to microservices                            |
+| users-api       | 5001        | PostgreSQL (users_db)         | Auth, users, sessions via Better Auth                             |
+| generations-api | 5002        | MongoDB                       | AI generation jobs, SSE streaming                                 |
+| shop-api        | 5003        | PostgreSQL (seo_facile_shops) | Shopify stores, collections, products, settings                   |
+| worker (x3)     | -           | MongoDB                       | Async AI generation job processor (RabbitMQ consumer, 3 replicas) |
+| rabbitmq        | 5672, 15672 | -                             | Message broker (management UI at :15672)                          |
 
 ## Development Commands
 
@@ -139,16 +139,18 @@ Routes are configured in `backend/api-gateway/src/config/routes.ts`:
 | `/api/auth/*`                  | users-api       | No   | Better Auth routes                        |
 | `/auth/*`                      | users-api       | No   | Plain auth routes (e.g., /auth/me)        |
 | `/users/*`                     | users-api       | Yes  | User management                           |
-| `/stores/*`                    | shop-api        | Yes  | Store CRUD + settings                     |
-| `/shopify/auth/*`              | shop-api        | No   | Shopify OAuth                             |
+| `/stores/*`                    | shop-api        | Yes  | Store CRUD + settings + reconnect         |
+| `/shopify/auth/*`              | shop-api        | No   | Shopify OAuth callback                    |
 | `/shops/:shopId/collections/*` | shop-api        | Yes  | Shopify collections sync, update, publish |
 | `/shops/:shopId/products/*`    | shop-api        | Yes  | Shopify products sync, update, publish    |
 | `/generations/*`               | generations-api | Yes  | AI content generation (async jobs)        |
 
 ### Notable Endpoints
 
-**Store Settings:**
+**Stores:**
 
+- `POST /stores` - Add store (returns `oauthUrl` for Shopify consent redirect)
+- `POST /stores/:storeId/reconnect` - Relaunch OAuth flow (reconnection)
 - `GET /stores/:storeId/settings` - Get store SEO settings
 - `PUT /stores/:storeId/settings` - Update store SEO settings
 
@@ -239,6 +241,14 @@ Routes are configured in `backend/api-gateway/src/config/routes.ts`:
 - `backend/worker/src/models/generation.model.ts` - Mongoose model (mirrors generations-api)
 - `backend/worker/src/types/job.types.ts` - Job type definitions
 
+### Backend Shared (`backend/shared/`)
+
+- `backend/shared/src/middlewares/error.middleware.ts` - Express error handler
+- `backend/shared/src/middlewares/gateway-guard.ts` - `X-Gateway-Secret` verification + userId extraction
+- `backend/shared/src/lib/encryption.ts` - AES-256-GCM encrypt/decrypt
+- `backend/shared/src/lib/app-factory.ts` - `createApp()` Express factory
+- `backend/shared/src/lib/controller-utils.ts` - `getParam`, `getRequiredUserId`, `handleServiceError`
+
 ### API Gateway
 
 - `backend/api-gateway/src/config/routes.ts` - Route definitions
@@ -247,6 +257,7 @@ Routes are configured in `backend/api-gateway/src/config/routes.ts`:
 
 - `frontend/lib/auth-client.ts` - Better Auth client
 - `frontend/lib/api.ts` - API fetch utility (`apiFetch`, `ApiError`)
+- `frontend/lib/format.ts` - Shared formatting utilities (`formatDate`, `formatPrice`)
 - `frontend/lib/validations/` - Zod schemas (collection, product, store-settings, store)
 - `frontend/hooks/use-shopify-stores.ts` - Store data fetching
 - `frontend/hooks/use-shopify-collections.ts` - Collections data fetching
@@ -300,10 +311,13 @@ Routes are configured in `backend/api-gateway/src/config/routes.ts`:
 
 ### Custom Hooks
 
-Data fetching hooks in `frontend/hooks/`:
+Data fetching hooks in `frontend/hooks/` built on two generic hooks:
+
+- **`useEntityList<T>`** - Generic paginated list with sync (used by products, collections)
+- **`useEntityCRUD<T, U>`** - Generic CRUD with publish (used by single product, collection)
 
 ```typescript
-// Example: use-shopify-products.ts
+// Example: use-shopify-products.ts (wraps useEntityList)
 const { products, loading, error, syncProducts } = useShopifyProducts(storeId);
 
 // Example: use-generation.ts (SSE streaming)
@@ -343,9 +357,17 @@ components/<feature>/
 
 ### Form Handling
 
-Forms use React Hook Form with Zod schemas from `frontend/lib/validations/`:
+Forms use React Hook Form with Zod schemas from `frontend/lib/validations/`. SEO fields share a common base (`base-seo.ts`) extended by product and collection schemas:
 
 ```typescript
+// frontend/lib/validations/base-seo.ts - shared SEO validation rules
+export const baseSeoFields = {
+  title: z.string().min(1).max(255),
+  descriptionHtml: z.string().max(65535).optional().nullable(),
+  seoTitle: z.string().optional().nullable(),
+  seoDescription: z.string().optional().nullable(),
+};
+
 const form = useForm<FormData>({
   resolver: zodResolver(formSchema),
   defaultValues: { ... }
@@ -362,6 +384,36 @@ npx shadcn@latest add <component>
 
 ## Backend Patterns
 
+### Backend Shared Package (`@seo-facile-de-ouf/backend-shared`)
+
+Centralized middleware and utilities used by all backend services:
+
+| Module             | Role                                                           |
+| ------------------ | -------------------------------------------------------------- |
+| `error.middleware` | Express error handler                                          |
+| `gateway-guard`    | `X-Gateway-Secret` verification + userId extraction            |
+| `encryption`       | AES-256-GCM encrypt/decrypt                                    |
+| `app-factory`      | `createApp()` factory to initialize Express apps               |
+| `controller-utils` | Helpers: `getParam`, `getRequiredUserId`, `handleServiceError` |
+
+### Express App Factory
+
+Each microservice uses `createApp()` instead of manually setting up Express:
+
+```typescript
+import { createApp } from "@seo-facile-de-ouf/backend-shared";
+
+export default () =>
+  createApp({
+    routes: [
+      { path: "/collections", router: collectionsRouter },
+      { path: "/products", router: productsRouter },
+    ],
+  });
+```
+
+Optional `beforeRoutes` callback for middleware before JSON parsing (needed by Better Auth in Users API).
+
 ### Service Architecture
 
 ```
@@ -370,9 +422,13 @@ routes/*.routes.ts → controllers/*.controller.ts → services/*.service.ts →
 
 ### Controller Pattern
 
+Controllers use shared utilities from `controller-utils`:
+
 ```typescript
 export const getProducts = async (req: Request, res: Response) => {
-  const { shopId } = req.params;
+  const shopId = getParam(req, "shopId");
+  const userId = getRequiredUserId(req, res);
+  if (!userId) return;
   const products = await shopifyProductsService.getProducts(shopId);
   res.json({ success: true, data: products });
 };
@@ -396,36 +452,65 @@ export const shopifyProductsService = {
 ```typescript
 // 1. API creates job and publishes to RabbitMQ
 const job = await Generation.create({ status: "pending", ... });
-await publishToQueue("generation_jobs", job);
+await publishToQueue("ai-generation-jobs", job);
 
-// 2. Worker consumes and processes
-channel.consume("generation_jobs", async (msg) => {
+// 2. Worker consumes and processes (3 replicas, prefetch: 1)
+channel.consume("ai-generation-jobs", async (msg) => {
   await Generation.updateOne({ _id: jobId }, { status: "processing" });
-  const result = await claudeService.generate(prompt);
+  const result = await openaiService.generate(prompt);
   await Generation.updateOne({ _id: jobId }, { status: "completed", content: result });
 });
+// Retry: up to 3 attempts with exponential backoff, then status: "failed"
 
 // 3. Frontend streams via SSE (MongoDB Change Streams)
 const stream = Generation.watch([{ $match: { "documentKey._id": jobId } }]);
 ```
 
+### Worker Strategy Pattern
+
+The worker uses a strategy pattern via `getGenerators()` to handle both products and collections with a single dispatch logic:
+
+```typescript
+const { generateDescription, generateMeta } = getGenerators(
+  job.entityType,
+  job,
+);
+switch (job.fieldType) {
+  case "description":
+    return { description: await generateDescription() };
+  case "full_description":
+    const [desc, meta] = await Promise.all([
+      generateDescription(),
+      generateMeta(),
+    ]);
+    return { description: desc, ...meta };
+  // ...
+}
+```
+
 ## Authentication Flow
 
+**Methods:** Email/password + OAuth (GitHub, Google, Roblox)
+
 1. Frontend calls `authClient` methods (login, register, logout)
-2. API Gateway proxies to users-api `/api/auth/*`
-3. Better Auth handles authentication, returns JWT cookie
-4. Subsequent requests include cookie, validated by middleware
-5. Dashboard pages check session server-side before rendering
+2. API Gateway proxies to users-api `/api/auth/*` (no auth required)
+3. Better Auth handles authentication (password hashing, JWT creation, OAuth)
+4. JWT returned in HTTP-only cookie, automatically included in subsequent requests
+5. API Gateway verifies JWT on protected routes, adds `X-Gateway-Secret` header + user info
+6. Microservices verify `X-Gateway-Secret` via gateway guard middleware
+7. Dashboard pages check session server-side before rendering
 
 ## Shopify Integration
 
 ### OAuth Flow
 
-Uses client credentials grant (not user OAuth):
+Uses **OAuth Authorization Code Grant** with a single Shopify app for all merchants:
 
-1. Store credentials (clientId, clientSecret) saved encrypted
-2. Access token requested via client credentials
-3. Token expires after 24h, auto-refreshed on API calls
+1. User creates a store → API returns an `oauthUrl` → user is redirected to Shopify consent screen
+2. After authorization, Shopify redirects to `/shopify/auth/callback` with an authorization code
+3. The callback verifies the **HMAC-SHA256 signature** (`crypto.timingSafeEqual`), exchanges the code for an **offline access token** (permanent, no refresh needed)
+4. The access token is **encrypted with AES-256-GCM** before storage
+5. Security: **signed state** parameter (storeId + nonce signed by HMAC) and **nonce** for CSRF protection
 
 ### Data Sync
 
@@ -439,9 +524,10 @@ Uses client credentials grant (not user OAuth):
 
 ### Encryption
 
-Credentials encrypted with AES-256-GCM (`backend/shop-api/src/lib/encryption.ts`):
+Shopify access token encrypted with AES-256-GCM (`backend/shop-api/src/lib/encryption.ts`):
 
-- `encrypt(plaintext)` → `iv:authTag:encrypted`
+- Encryption key derived from `ENCRYPTION_KEY` env var via SHA-256 hash
+- `encrypt(plaintext)` → JSON `{iv, data, tag}` in hexadecimal
 - `decrypt(ciphertext)` → original value
 
 ## Environment
@@ -462,15 +548,19 @@ RABBITMQ_URL=amqp://guest:guest@localhost:5672
 
 ### Critical Variables
 
-| Variable            | Service                 | Description                           |
-| ------------------- | ----------------------- | ------------------------------------- |
-| `ENCRYPTION_KEY`    | shop-api                | AES-256 key for credential encryption |
-| `SHOPIFY_HOST_NAME` | shop-api                | Hostname for OAuth redirects          |
-| `DATABASE_URL`      | users-api, shop-api     | PostgreSQL connection string          |
-| `MONGO_URI`         | generations-api, worker | MongoDB connection string             |
-| `RABBITMQ_URL`      | generations-api, worker | RabbitMQ connection string            |
-| `OPENAI_API_KEY`    | worker                  | OpenAI API key for GPT                |
-| `ANTHROPIC_API_KEY` | worker                  | Anthropic API key for Claude          |
+| Variable                | Service                    | Description                           |
+| ----------------------- | -------------------------- | ------------------------------------- |
+| `ENCRYPTION_KEY`        | shop-api                   | AES-256 key for credential encryption |
+| `SHOPIFY_CLIENT_ID`     | shop-api                   | Shopify app client ID                 |
+| `SHOPIFY_CLIENT_SECRET` | shop-api                   | Shopify app client secret             |
+| `SHOPIFY_HOST_NAME`     | shop-api                   | Hostname for OAuth redirects          |
+| `GATEWAY_SECRET`        | api-gateway + all services | Shared secret for gateway guard       |
+| `BETTER_AUTH_SECRET`    | users-api                  | JWT signing secret                    |
+| `DATABASE_URL`          | users-api, shop-api        | PostgreSQL connection string          |
+| `MONGO_URI`             | generations-api, worker    | MongoDB connection string             |
+| `RABBITMQ_URL`          | generations-api, worker    | RabbitMQ connection string            |
+| `OPENAI_API_KEY`        | worker                     | OpenAI API key for GPT                |
+| `ANTHROPIC_API_KEY`     | worker                     | Anthropic API key for Claude          |
 
 ### Setup
 

@@ -1,143 +1,215 @@
 #!/bin/bash
 
-# Colors for output
+# Colors
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+BOLD='\033[1m'
+NC='\033[0m'
 
-echo -e "${BLUE}╔════════════════════════════════════════════╗${NC}"
-echo -e "${BLUE}║   🚀 Setup Microservices Architecture     ║${NC}"
-echo -e "${BLUE}╔════════════════════════════════════════════╗${NC}"
+echo -e "${BLUE}${BOLD}"
+echo "  ______                 ____"
+echo " / ____/___ ________  __/ __/___  ____"
+echo "/ __/ / __ \`/ ___/ / / /\\__ \\/ _ \\/ __ \\"
+echo "/ /___/ /_/ (__  ) /_/ /___/ /  __/ /_/ /"
+echo "\\____/\\__,_/____/\\__, //____/\\___/\\____/"
+echo "                /____/"
+echo -e "${NC}"
+echo -e "${BLUE}Setup du projet EasySeo - Microservices${NC}"
 echo ""
 
-# Check if pnpm is installed
-if ! command -v pnpm &> /dev/null; then
-    echo -e "${RED}❌ pnpm is not installed!${NC}"
-    echo -e "${YELLOW}Install it with: npm install -g pnpm${NC}"
+# ─── Prerequisites ────────────────────────────────────────
+
+echo -e "${BOLD}1. Verification des prerequis${NC}"
+echo ""
+
+HAS_ERROR=false
+
+if command -v node &> /dev/null; then
+    echo -e "  ${GREEN}OK${NC} Node.js $(node -v)"
+else
+    echo -e "  ${RED}MANQUANT${NC} Node.js (>= 20 LTS requis)"
+    HAS_ERROR=true
+fi
+
+if command -v pnpm &> /dev/null; then
+    echo -e "  ${GREEN}OK${NC} pnpm $(pnpm -v)"
+else
+    echo -e "  ${RED}MANQUANT${NC} pnpm (npm install -g pnpm)"
+    HAS_ERROR=true
+fi
+
+if command -v docker &> /dev/null; then
+    echo -e "  ${GREEN}OK${NC} Docker"
+else
+    echo -e "  ${RED}MANQUANT${NC} Docker"
+    HAS_ERROR=true
+fi
+
+if docker compose version &> /dev/null; then
+    echo -e "  ${GREEN}OK${NC} Docker Compose"
+else
+    echo -e "  ${RED}MANQUANT${NC} Docker Compose"
+    HAS_ERROR=true
+fi
+
+if [ "$HAS_ERROR" = true ]; then
+    echo ""
+    echo -e "${RED}Installez les prerequis manquants avant de continuer.${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✅ pnpm is installed${NC}"
 echo ""
 
-# Function to create .env files
-create_env_files() {
-    echo -e "${BLUE}📝 Creating environment files...${NC}"
-    
-    # Root .env for Docker Compose
-    if [ ! -f ".env" ]; then
-        if [ -f "env.example" ]; then
-            cp env.example .env
-            echo -e "${GREEN}  ✓ Created .env from env.example (for Docker Compose)${NC}"
+# ─── Generate shared secret ──────────────────────────────
+
+GATEWAY_SECRET=$(openssl rand -hex 64)
+
+# ─── Environment files ────────────────────────────────────
+
+echo -e "${BOLD}2. Creation des fichiers .env${NC}"
+echo ""
+
+copy_env() {
+    local src="$1"
+    local dest="$2"
+    local name="$3"
+
+    if [ -f "$dest" ]; then
+        echo -e "  ${YELLOW}EXISTE${NC} $name"
+    elif [ -f "$src" ]; then
+        cp "$src" "$dest"
+        echo -e "  ${GREEN}CREE${NC}   $name"
+    else
+        echo -e "  ${RED}ERREUR${NC} $src introuvable"
+    fi
+}
+
+# Root .env (Docker Compose)
+copy_env "env.example" ".env" ".env (Docker Compose)"
+
+# Backend services
+copy_env "backend/api-gateway/.env.example" "backend/api-gateway/.env" "backend/api-gateway/.env"
+copy_env "backend/users-api/.env.example" "backend/users-api/.env" "backend/users-api/.env"
+copy_env "backend/shop-api/.env.example" "backend/shop-api/.env" "backend/shop-api/.env"
+copy_env "backend/generations-api/.env.example" "backend/generations-api/.env" "backend/generations-api/.env"
+
+# Frontend
+if [ ! -f "frontend/.env.local" ]; then
+    cat > frontend/.env.local << 'EOF'
+NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_FRONTEND_URL=http://localhost:3000
+EOF
+    echo -e "  ${GREEN}CREE${NC}   frontend/.env.local"
+else
+    echo -e "  ${YELLOW}EXISTE${NC} frontend/.env.local"
+fi
+
+echo ""
+
+# ─── Inject GATEWAY_SECRET ────────────────────────────────
+
+echo -e "${BOLD}3. Configuration du GATEWAY_SECRET partage${NC}"
+echo ""
+
+inject_gateway_secret() {
+    local file="$1"
+    local name="$2"
+
+    if [ -f "$file" ]; then
+        if grep -q "^GATEWAY_SECRET=$" "$file"; then
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                sed -i '' "s|^GATEWAY_SECRET=$|GATEWAY_SECRET=$GATEWAY_SECRET|" "$file"
+            else
+                sed -i "s|^GATEWAY_SECRET=$|GATEWAY_SECRET=$GATEWAY_SECRET|" "$file"
+            fi
+            echo -e "  ${GREEN}INJECTE${NC} $name"
         else
-            echo -e "${RED}  ❌ env.example not found!${NC}"
-            exit 1
+            echo -e "  ${YELLOW}DEJA SET${NC} $name"
         fi
-    else
-        echo -e "${YELLOW}  ⚠ .env already exists, skipping${NC}"
     fi
-    
-    # API Gateway .env
-    if [ ! -f "backend/api-gateway/.env" ]; then
-        cat > backend/api-gateway/.env << 'EOF'
-# API Gateway Configuration
-PORT=3000
-
-# Microservices URLs (for Docker)
-GENERATIONS_API_URL=http://generations-api:5002
-USERS_API_URL=http://users-api:5001
-
-# For local development without Docker, use:
-# GENERATIONS_API_URL=http://localhost:5002
-# USERS_API_URL=http://localhost:5001
-EOF
-        echo -e "${GREEN}  ✓ Created backend/api-gateway/.env${NC}"
-    else
-        echo -e "${YELLOW}  ⚠ backend/api-gateway/.env already exists, skipping${NC}"
-    fi
-
-    # Generations API .env
-    if [ ! -f "backend/generations-api/.env" ]; then
-        cat > backend/generations-api/.env << 'EOF'
-# Generations API Configuration
-PORT=5002
-
-# MongoDB Configuration (for Docker)
-MONGO_URI=mongodb://mongo:27017/generations-db
-
-# For local development without Docker, use:
-# MONGO_URI=mongodb://localhost:27017/generations-db
-EOF
-        echo -e "${GREEN}  ✓ Created backend/generations-api/.env${NC}"
-    else
-        echo -e "${YELLOW}  ⚠ backend/generations-api/.env already exists, skipping${NC}"
-    fi
-
-    # Users API .env
-    if [ ! -f "backend/users-api/.env" ]; then
-        cat > backend/users-api/.env << 'EOF'
-# Users API Configuration
-PORT=5001
-EOF
-        echo -e "${GREEN}  ✓ Created backend/users-api/.env${NC}"
-    else
-        echo -e "${YELLOW}  ⚠ backend/users-api/.env already exists, skipping${NC}"
-    fi
-    
-    echo ""
 }
 
-# Function to install dependencies
-install_dependencies() {
-    echo -e "${BLUE}📦 Installing dependencies...${NC}"
-    echo ""
-    
-    # API Gateway
-    echo -e "${YELLOW}Installing api-gateway dependencies...${NC}"
-    cd backend/api-gateway && pnpm install && cd ../..
-    echo -e "${GREEN}  ✓ api-gateway dependencies installed${NC}"
-    echo ""
-    
-    # Generations API
-    echo -e "${YELLOW}Installing generations-api dependencies...${NC}"
-    cd backend/generations-api && pnpm install && cd ../..
-    echo -e "${GREEN}  ✓ generations-api dependencies installed${NC}"
-    echo ""
-    
-    # Users API
-    echo -e "${YELLOW}Installing users-api dependencies...${NC}"
-    cd backend/users-api && pnpm install && cd ../..
-    echo -e "${GREEN}  ✓ users-api dependencies installed${NC}"
-    echo ""
-}
+inject_gateway_secret "backend/api-gateway/.env" "api-gateway"
+inject_gateway_secret "backend/users-api/.env" "users-api"
+inject_gateway_secret "backend/shop-api/.env" "shop-api"
+inject_gateway_secret "backend/generations-api/.env" "generations-api"
 
-# Main setup
-create_env_files
-install_dependencies
-
-echo -e "${GREEN}╔════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║   ✅ Setup completed successfully!         ║${NC}"
-echo -e "${GREEN}╚════════════════════════════════════════════╝${NC}"
-echo ""
-echo -e "${BLUE}Next steps:${NC}"
-echo ""
-echo -e "${YELLOW}For Docker development:${NC}"
-echo -e "  docker-compose up --build"
-echo ""
-echo -e "${YELLOW}For local development (3 terminals):${NC}"
-echo -e "  Terminal 1: cd backend/api-gateway && pnpm dev"
-echo -e "  Terminal 2: cd backend/generations-api && pnpm dev"
-echo -e "  Terminal 3: cd backend/users-api && pnpm dev"
-echo ""
-echo -e "${YELLOW}MongoDB GUI:${NC}"
-echo -e "  Use MongoDB Compass: mongodb://localhost:27017"
-echo ""
-echo -e "${BLUE}Access points:${NC}"
-echo -e "  API Gateway:       http://localhost:3000"
-echo -e "  Generations API:   http://localhost:5002"
-echo -e "  Users API:         http://localhost:5001"
-echo -e "  MongoDB:           mongodb://localhost:27017"
 echo ""
 
+# ─── Install dependencies ─────────────────────────────────
+
+echo -e "${BOLD}4. Installation des dependances${NC}"
+echo ""
+
+pnpm install
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Erreur lors de l'installation des dependances.${NC}"
+    exit 1
+fi
+echo ""
+echo -e "  ${GREEN}OK${NC} Dependances installees"
+echo ""
+
+# ─── Generate Prisma clients ──────────────────────────────
+
+echo -e "${BOLD}5. Generation des clients Prisma${NC}"
+echo ""
+
+echo -e "  ${YELLOW}...${NC} users-api"
+(cd backend/users-api && pnpm prisma:generate)
+if [ $? -eq 0 ]; then
+    echo -e "  ${GREEN}OK${NC} users-api"
+else
+    echo -e "  ${RED}ERREUR${NC} users-api prisma:generate"
+fi
+
+echo -e "  ${YELLOW}...${NC} shop-api"
+(cd backend/shop-api && pnpm prisma:generate)
+if [ $? -eq 0 ]; then
+    echo -e "  ${GREEN}OK${NC} shop-api"
+else
+    echo -e "  ${RED}ERREUR${NC} shop-api prisma:generate"
+fi
+
+echo ""
+
+# ─── Done ─────────────────────────────────────────────────
+
+echo -e "${GREEN}${BOLD}Setup termine avec succes !${NC}"
+echo ""
+echo -e "${BOLD}Prochaines etapes :${NC}"
+echo ""
+echo -e "  ${BLUE}1.${NC} Lancez les services avec Docker :"
+echo -e "     ${YELLOW}docker compose up --build${NC}"
+echo ""
+echo -e "  ${BLUE}2.${NC} Appliquez les schemas Prisma (apres que PostgreSQL soit pret) :"
+echo -e "     ${YELLOW}cd backend/users-api && pnpm prisma:push${NC}"
+echo -e "     ${YELLOW}cd backend/shop-api && pnpm prisma:push${NC}"
+echo ""
+echo -e "  ${BLUE}3.${NC} Ou en dev local (sans Docker) :"
+echo -e "     ${YELLOW}pnpm run dev${NC}"
+echo ""
+echo -e "${BOLD}Variables a configurer manuellement :${NC}"
+echo ""
+echo -e "  ${YELLOW}backend/users-api/.env${NC}"
+echo -e "    - DATABASE_URL         (connexion PostgreSQL)"
+echo -e "    - BETTER_AUTH_SECRET   (secret JWT)"
+echo -e "    - ENCRYPTION_KEY       (cle de chiffrement)"
+echo ""
+echo -e "  ${YELLOW}backend/shop-api/.env${NC}"
+echo -e "    - SHOPIFY_CLIENT_SECRET (secret de l'app Shopify EasySeo)"
+echo ""
+echo -e "  ${YELLOW}.env (racine)${NC}"
+echo -e "    - OPENAI_API_KEY       (pour le worker)"
+echo -e "    - ANTHROPIC_API_KEY    (pour le worker)"
+echo ""
+echo -e "${BOLD}URLs d'acces :${NC}"
+echo ""
+echo -e "  Frontend             ${BLUE}http://localhost:3000${NC}"
+echo -e "  API Gateway          ${BLUE}http://localhost:4000${NC}"
+echo -e "  RabbitMQ Management  ${BLUE}http://localhost:15672${NC}  (guest/guest)"
+echo -e "  Adminer (PostgreSQL) ${BLUE}http://localhost:8082${NC}"
+echo -e "  Mongo Express        ${BLUE}http://localhost:8081${NC}"
+echo ""

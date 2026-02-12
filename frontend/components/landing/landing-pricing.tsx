@@ -17,7 +17,7 @@ const plans = [
     name: "Gratuit",
     price: "0€",
     period: "/mois",
-    description: "Pour découvrir SEO Facile et tester la génération IA.",
+    description: "Pour découvrir EasySEO et tester la génération IA.",
     popular: false,
     features: [
       "20 générations / mois",

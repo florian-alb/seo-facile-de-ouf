@@ -179,7 +179,7 @@ La page d'accueil est la vitrine commerciale d'EasySeo. Elle est composée de pl
 - **FAQ** : 6 questions fréquentes (modèles IA utilisés, compétences requises, mécanisme de sync, personnalisation, unicité du contenu, politique d'annulation)
 - **CTA final** et **Footer**
 
-![Architecture globale](images/landing-page.png)
+![Landing page EasySeo](images/landing-page.png)
 
 ### 3.2 Authentification
 
@@ -199,8 +199,8 @@ EasySeo propose deux modes d'inscription et de connexion :
 
 Après authentification, l'utilisateur est redirigé vers le dashboard. Les sessions sont gérées par Better Auth avec des JWT stockés dans des cookies HTTP-only.
 
-![Architecture globale](images/sign-in.png)
-![Architecture globale](images/sign-up.png)
+![Page de connexion](images/sign-in.png)
+![Page d'inscription](images/sign-up.png)
 
 ### 3.3 Dashboard
 
@@ -213,7 +213,7 @@ Le dashboard est la page d'accueil une fois connecté. Il offre une vue d'ensemb
 
 La sidebar de navigation à gauche liste toutes les boutiques avec un accès rapide à leurs collections, produits et paramètres.
 
-![Architecture globale](images/dashboard.png)
+![Dashboard principal](images/dashboard.png)
 
 ### 3.4 Gestion des boutiques
 
@@ -222,7 +222,7 @@ L'utilisateur peut connecter plusieurs boutiques Shopify à EasySeo via **OAuth 
 **Ajout d'une boutique :**
 Un dialog permet de renseigner le nom de la boutique, le domaine Shopify (xxx.myshopify.com) et la langue. En validant, l'utilisateur est **redirigé vers l'écran de consentement Shopify** où il autorise l'application EasySeo à accéder à sa boutique. Après autorisation, Shopify redirige l'utilisateur vers le callback de l'API, qui échange le code d'autorisation contre un **token d'accès offline** (permanent). L'utilisateur est ensuite redirigé vers le dashboard avec une notification de succès.
 
-![Flux OAuth Shopify](images/shopify-app-auth.png)
+![Diagramme du flux OAuth Shopify](archi/oauth-shopify-diagram.png)
 
 **Reconnexion :**
 Si une boutique est déconnectée (token révoqué, app désinstallée), un bouton "Reconnecter" relance le flux OAuth pour obtenir un nouveau token.
@@ -263,7 +263,7 @@ Une sidebar affiche les métadonnées en lecture seule (vendeur, type, prix, ima
 - Synchroniser (récupère les dernières données depuis Shopify)
 - Générer tout (lance la génération IA sur tous les champs d'un coup)
 
-![Architecture globale](images/product-generation.png)
+![Génération de contenu sur un produit](images/product-generation.png)
 
 ### 3.6 Gestion des collections
 
@@ -322,7 +322,7 @@ Chaque produit et chaque collection dispose d'un onglet "Historique" qui liste t
 
 En cliquant sur une entrée, l'utilisateur accède au détail complet de la génération : contenu généré, mots-clés utilisés, paramètres du store au moment de la génération et le contexte produit/collection.
 
-![Architecture globale](images/history.png)
+![Historique des générations](images/history.png)
 
 ### 3.9 Paramètres SEO du store
 
@@ -339,7 +339,7 @@ Chaque boutique dispose d'une page de paramètres SEO qui personnalise le compor
 
 Ces paramètres sont intégrés dans chaque job de génération pour que l'IA produise du contenu adapté à la cible et à la niche de la boutique.
 
-![Architecture globale](images/store-settings.png)
+![Paramètres SEO du store](images/store-settings.png)
 
 ### 3.10 Éditeur de texte riche
 
@@ -437,13 +437,13 @@ Le flux asynchrone fonctionne comme ceci :
 10. Le frontend affiche le résultat en temps réel
 ```
 
-![Architecture globale](images/flux-asynchrone.png)
+![Diagramme du flux asynchrone de génération](archi/generation-diagram.png)
 
 L'avantage principal : l'API n'est jamais bloquée. Même si la génération prend 30 secondes, le frontend reste réactif et l'utilisateur voit l'avancement en temps réel.
 
 ### 4.5 Diagramme d'architecture
 
-![Architecture globale](images/architecture-v2.png)
+![Diagramme d'architecture globale](archi/global-archi.png)
 
 Le schéma montre le frontend qui communique uniquement avec l'API Gateway, qui redirige vers les 3 microservices (Users, Shop, Generations). Le service Generations publie dans RabbitMQ, consommé par les workers qui mettent à jour MongoDB.
 
@@ -598,9 +598,18 @@ L'API Gateway est un simple reverse proxy. Elle ne contient aucune logique méti
 | `/shops/*`        | Shop API (5003)        | Oui          |
 | `/generations/*`  | Generations API (5002) | Oui          |
 
-Pour les routes avec auth requise, la Gateway vérifie le token JWT de l'utilisateur (via Better Auth) avant de proxy la requête vers le service.
+Pour les routes avec auth requise, la Gateway vérifie la session de l'utilisateur avant de proxy la requête vers le service. Ce mécanisme repose sur deux middlewares chaînés :
 
-La Gateway utilise `http-proxy-middleware` pour le proxy. Elle ajoute un header `X-Gateway-Secret` à chaque requête proxifiée, que les microservices vérifient pour s'assurer que la requête vient bien de la Gateway et non d'un appel direct.
+**`validateSession()`** : ce middleware intercepte chaque requête entrante et appelle le Users API sur l'endpoint interne `/auth/validate-session` en lui transmettant le cookie de session et/ou le header `Authorization`. Le Users API (via Better Auth) valide le token JWT et retourne les informations utilisateur (`id`, `email`, `name`). Si la session est valide, ces informations sont attachées à l'objet `req.user` pour les middlewares suivants. Si la validation échoue (cookie expiré, token invalide), la requête continue sans `req.user` — ce sont les routes protégées qui bloqueront.
+
+**`requireAuthentication()`** : ce middleware vérifie simplement que `req.user` est défini. Si l'utilisateur n'est pas authentifié, il retourne une erreur `401 Unauthorized`. Si l'utilisateur est authentifié, la requête est transmise au proxy.
+
+La Gateway utilise ensuite `http-proxy-middleware` pour proxifier la requête vers le microservice cible. Elle ajoute deux headers importants :
+
+- `X-Gateway-Secret` : un secret partagé que les microservices vérifient pour s'assurer que la requête vient bien de la Gateway et non d'un appel direct
+- `X-User-Id` : l'identifiant de l'utilisateur authentifié, extrait de la session validée
+
+Ce mécanisme de validation centralisé signifie que les microservices n'ont pas besoin de connaître la logique d'authentification : ils font confiance au header `X-Gateway-Secret` pour confirmer que la requête a été validée par la Gateway, et utilisent `X-User-Id` pour identifier l'utilisateur.
 
 ### 6.2 Microservice Users
 
@@ -665,10 +674,23 @@ Ce service gère :
 - Les paramètres SEO de chaque boutique
 - La publication des modifications vers Shopify
 
-**Connexion Shopify via OAuth :**
-EasySeo utilise une seule application Shopify avec le flux **OAuth Authorization Code Grant**. Quand un marchand ajoute sa boutique, il est redirigé vers l'écran de consentement Shopify. Après autorisation, le service reçoit un code d'autorisation qu'il échange contre un **token d'accès offline** (permanent, pas besoin de refresh). Ce token est **chiffré en AES-256-GCM** avant stockage en base.
+**Application Shopify :**
+
+EasySeo utilise une **seule application Shopify** enregistrée sur le Partner Dashboard, configurée dans le fichier `seo-easy-shopify-app/shopify.app.toml`. Cette application définit :
+
+- Le `client_id` de l'app (identifiant unique sur Shopify)
+- Les **scopes d'accès** demandés : `read_products`, `write_products`, `read_customers`
+- L'URL de callback OAuth : `/shopify/auth/callback` sur l'API Gateway
+- L'application est **non-embedded** (`embedded = false`), ce qui signifie qu'elle ne s'intègre pas dans l'admin Shopify mais fonctionne de manière autonome depuis le dashboard EasySeo
+
+Ce dossier contient la configuration nécessaire pour le Shopify CLI (`shopify app dev`) et le déploiement sur le Shopify App Store.
+
+**Connexion via OAuth :**
+
+Quand un marchand ajoute sa boutique, il est redirigé vers l'écran de consentement Shopify via le flux **OAuth Authorization Code Grant**. Après autorisation, le service reçoit un code d'autorisation qu'il échange contre un **token d'accès offline** (permanent, pas besoin de refresh). Ce token est **chiffré en AES-256-GCM** avant stockage en base.
 
 Le flux OAuth est sécurisé par :
+
 - **HMAC-SHA256** : vérification de la signature Shopify sur le callback avec `crypto.timingSafeEqual`
 - **Signed state** : le paramètre `state` contient le `storeId` et un `nonce` signés par HMAC, permettant d'identifier le store de retour du callback sans session utilisateur
 - **Nonce** : protection CSRF, vérifié à la réception du callback puis supprimé
@@ -720,7 +742,7 @@ Pour les types combinés (`full_description`), le worker lance les générations
 
 ### 7.1 PostgreSQL - Users
 
-![Architecture globale](images/user-db-schema.png)
+![Schéma BDD Users](db/user-db.png)
 
 **Table `user`** :
 | Champ | Type | Description |
@@ -755,7 +777,7 @@ Stocke les tokens de vérification email avec une date d'expiration.
 
 ### 7.2 PostgreSQL - Shop
 
-> ![Architecture globale](images/shop-db-schema.png)
+![Schéma BDD Shop](db/shop-db.png)
 
 **Table `store`** :
 | Champ | Type | Description |
@@ -791,7 +813,7 @@ Stocke les produits avec toutes les infos Shopify (titre, prix, vendor, tags, im
 
 ### 7.3 MongoDB - Generations
 
-> ![Architecture globale](images/mongo-schema.png)
+![Schéma BDD Generations MongoDB](db/generation-db.png)
 
 Un document de génération ressemble à ça :
 
@@ -857,13 +879,13 @@ L'utilisateur peut s'inscrire/se connecter via :
 - Email + mot de passe classique
 - OAuth : GitHub, Google
 
-![Architecture globale](images/sign-up.png)
+![Page d'inscription](images/sign-up.png)
 
 **2. Dashboard principal**
 
 C'est la vue centrale. La sidebar à gauche liste les boutiques connectées avec leurs sections (Collections, Produits). Le contenu principal affiche les tableaux de données.
 
-> ![Architecture globale](images/dashboard.png)
+![Dashboard principal](images/dashboard.png)
 
 **3. Ajout d'une boutique**
 
@@ -875,7 +897,7 @@ Un dialog permet de connecter une boutique Shopify en renseignant :
 
 Après validation, l'utilisateur est redirigé vers l'écran de consentement Shopify OAuth. Une fois l'autorisation accordée, il est automatiquement redirigé vers le dashboard avec une notification de succès.
 
-![Architecture globale](images/add-store.png)
+![Dialog d'ajout de boutique](images/add-store.png)
 
 **4. Page produit / collection**
 
@@ -887,33 +909,41 @@ Chaque produit ou collection a sa page de détail avec :
 - Un compteur de mots/caractères
 - Un bouton "Publier sur Shopify" pour pousser les modifications
 
-![Architecture globale](images/product-fields.png)
+![Champs SEO d'un produit](images/product-fields.png)
 
 **5. Historique des générations**
 
 Chaque produit/collection dispose d'un onglet historique qui liste toutes les générations passées avec leur date, statut et contenu.
 
-![Architecture globale](images/history.png)
+![Historique des générations](images/history.png)
 
 **6. Paramètres du store**
 
 La page settings permet de configurer les paramètres SEO globaux du store (niche, langue, persona client, nombre de mots). Ces paramètres sont envoyés à l'IA pour personnaliser les générations.
 
-![Architecture globale](images/store-settings.png)
+![Paramètres SEO du store](images/store-settings.png)
 
 ### 8.2 Gestion des états et appels API
 
-Le frontend utilise des **hooks custom** pour toute la logique métier :
+Le frontend utilise des **hooks custom** pour toute la logique métier. Les hooks qui gèrent les entités Shopify (produits, collections) ne sont pas écrits de zéro : ils s'appuient sur deux **hooks génériques** qui factorisent les patterns récurrents (voir section 13.5 pour le détail de l'implémentation) :
 
-| Hook                                          | Rôle                            |
-| --------------------------------------------- | ------------------------------- |
-| `useShopifyProducts(storeId)`                 | Liste des produits, sync        |
-| `useShopifyCollections(storeId)`              | Liste des collections, sync     |
-| `useShopifyProduct(storeId, productId)`       | CRUD + publish d'un produit     |
-| `useShopifyCollection(storeId, collectionId)` | CRUD + publish d'une collection |
-| `useStoreSettings(storeId)`                   | Lecture/écriture des paramètres |
-| `useFieldGeneration(storeId)`                 | Génération IA avec SSE          |
-| `useGenerationHistory(...)`                   | Historique des générations      |
+| Hook générique       | Pattern factorisé                                    |
+| -------------------- | ---------------------------------------------------- |
+| `useEntityList<T>`   | Liste paginée avec synchronisation, tri, filtres     |
+| `useEntityCRUD<T,U>` | Lecture, mise à jour, publication et synchronisation |
+
+Ces hooks génériques sont ensuite paramétrés par les hooks spécifiques à chaque entité :
+
+| Hook spécifique                               | Hook générique utilisé | Rôle                            |
+| --------------------------------------------- | ---------------------- | ------------------------------- |
+| `useShopifyProducts(storeId)`                 | `useEntityList`        | Liste des produits, sync        |
+| `useShopifyCollections(storeId)`              | `useEntityList`        | Liste des collections, sync     |
+| `useShopifyProduct(storeId, productId)`       | `useEntityCRUD`        | CRUD + publish d'un produit     |
+| `useShopifyCollection(storeId, collectionId)` | `useEntityCRUD`        | CRUD + publish d'une collection |
+| `useStoreSettings(storeId)`                   | —                      | Lecture/écriture des paramètres |
+| `useFieldGeneration(storeId)`                 | —                      | Génération IA avec SSE          |
+| `useGenerationHistory(...)`                   | —                      | Historique des générations      |
+| `useDashboardStats()`                         | —                      | Statistiques du dashboard       |
 
 Tous les appels API passent par `apiFetch()` dans `frontend/lib/api.ts`, qui :
 
@@ -969,16 +999,29 @@ Voici le flux complet quand un utilisateur clique sur "Générer" :
 
 ### 9.2 Prompt engineering
 
-Chaque appel IA est construit avec un contexte riche pour obtenir des résultats pertinents. Le prompt inclut :
+Chaque appel IA est construit avec un contexte riche pour obtenir des résultats pertinents. Les prompts sont organisés dans des fichiers dédiés, séparés par type d'entité et par rôle :
 
-- **Les informations produit** : titre, tags, vendeur, type de produit, prix, description actuelle
-- **Les paramètres du store** : mot-clé de niche, description de la niche, persona client, nombre de mots souhaité
-- **Les mots-clés** fournis par l'utilisateur
-- **La langue** cible
+```
+backend/worker/src/prompts/
+├── products/
+│   ├── description-system-prompt.ts   # Rôle et règles pour l'IA
+│   ├── description-user-prompt.ts     # Contexte produit concret
+│   └── meta-prompt.ts                 # Génération meta-tags JSON
+└── collections/
+    ├── description-system-prompt.ts
+    ├── description-user-prompt.ts
+    └── meta-prompt.ts
+```
 
-Pour les **descriptions** (format HTML), le prompt demande un texte riche, structuré avec des balises HTML, optimisé pour le SEO avec les mots-clés fournis.
+Cette séparation suit le pattern **system prompt / user prompt** recommandé par OpenAI. Le system prompt définit le rôle de l'IA et les règles générales, tandis que le user prompt fournit les données spécifiques à la requête.
 
-Pour les **meta-tags** (format JSON), le prompt demande un objet JSON structuré avec `metaTitle`, `metaDescription` et `slug`, et OpenAI est configuré avec `response_format: "json_object"` pour garantir un JSON valide en sortie.
+**Le system prompt** définit le rôle de l'IA (« expert e-commerce SEO copywriter ») et intègre les paramètres du store : persona client, mot-clé de niche, description de la niche, langue cible et nombre de mots souhaité. Il impose aussi des règles strictes de formatage : HTML valide avec des balises spécifiques (`<h2>`, `<h3>`, `<p>`, `<ul>`, `<li>`, `<strong>`, `<em>`), pas de markdown, pas de balises `<html>` ou `<body>`.
+
+**Le user prompt** fournit le contexte concret du produit ou de la collection : nom, vendeur, catégorie, prix, tags, mots-clés SEO fournis par l'utilisateur, et description actuelle (si existante, tronquée à 500 caractères pour ne pas surcharger le prompt).
+
+Pour les **meta-tags**, un prompt séparé demande un objet JSON structuré avec `metaTitle` (max 60 caractères), `metaDescription` (max 155 caractères, avec call-to-action) et `slug` (URL optimisé). OpenAI est configuré avec `response_format: "json_object"` pour garantir un JSON valide en sortie.
+
+Chaque fonction de prompt est typée avec une interface TypeScript (`DescriptionSystemPromptParams`, `MetaPromptParams`...) et construit le prompt de manière conditionnelle : les champs optionnels (vendeur, catégorie, description actuelle) ne sont inclus que s'ils existent, ce qui évite des prompts pollués par des valeurs vides.
 
 Les langues supportées sont : français, anglais, espagnol, allemand et italien.
 
@@ -1064,7 +1107,18 @@ Les microservices ne sont pas exposés directement. Plusieurs mécanismes de sé
 
 - **Gateway Guard** : chaque microservice vérifie le header `X-Gateway-Secret` pour s'assurer que la requête vient bien de l'API Gateway. Un appel direct au microservice sans ce header est rejeté.
 - **Auth Middleware** : les routes protégées vérifient le JWT de l'utilisateur et injectent son `userId` dans la requête
-- **Isolation Docker** : les microservices ne sont accessibles que via le réseau Docker interne, seuls la Gateway et le frontend exposent des ports
+
+**Isolation réseau Docker :**
+
+L'un des principaux mécanismes de sécurité repose sur la configuration réseau de Docker Compose. Tous les services communiquent via un réseau bridge privé (`app-network`), mais seuls les points d'entrée légitimes exposent des ports sur la machine hôte :
+
+- **`ports`** (accessible depuis l'extérieur) : utilisé uniquement par le **frontend** (3000) et l'**API Gateway** (4000). Ce sont les deux seuls services applicatifs accessibles depuis le navigateur ou un client HTTP externe.
+- **`expose`** (interne au réseau Docker uniquement) : utilisé par les microservices **Users API** (5001), **Shop API** (5003) et **Generations API** (5002). Ces services déclarent leurs ports avec `expose`, ce qui les rend accessibles uniquement aux autres conteneurs du même réseau Docker, jamais depuis la machine hôte.
+- **Aucun port** : les **workers** n'exposent aucun port, ni en interne ni en externe. Ce sont des consommateurs RabbitMQ qui n'ont pas besoin de recevoir de requêtes HTTP.
+
+Concrètement, un utilisateur ou un attaquant ne peut pas appeler `http://localhost:5001` pour contacter directement le Users API — cette requête sera refusée car le port n'est pas publié sur l'hôte. Seul le trafic passant par l'API Gateway (qui applique l'authentification et le gateway guard) peut atteindre les microservices.
+
+Les services d'infrastructure (PostgreSQL, MongoDB, RabbitMQ) et les outils d'administration (Adminer, Mongo Express) exposent leurs ports pour le développement local. En production, ces ports devraient être fermés ou restreints par des règles de firewall.
 
 ---
 
@@ -1119,28 +1173,41 @@ Dans ce cas, il faut avoir PostgreSQL, MongoDB (en Replica Set) et RabbitMQ inst
 
 ### 11.2 Docker Compose
 
-Le `docker-compose.yml` définit 10 services :
+Le `docker-compose.yml` définit 11 services :
 
 **Services applicatifs :**
-| Service | Image | Port | Replicas |
-|---|---|---|---|
-| frontend | Build local | 3000 | 1 |
-| api-gateway | Build local | 4000 | 1 |
-| users-api | Build local | 5001 | 1 |
-| shop-api | Build local | 5003 | 1 |
-| generations-api | Build local | 5002 | 1 |
-| worker | Build local | - | 3 |
+| Service | Image | Port | Exposition | Replicas |
+|---|---|---|---|---|
+| frontend | Build local | 3000 | `ports` (externe) | 1 |
+| api-gateway | Build local | 4000 | `ports` (externe) | 1 |
+| users-api | Build local | 5001 | `expose` (interne) | 1 |
+| shop-api | Build local | 5003 | `expose` (interne) | 1 |
+| generations-api | Build local | 5002 | `expose` (interne) | 1 |
+| worker | Build local | - | Aucun | 3 |
+
+La colonne **Exposition** indique la stratégie réseau de chaque service :
+
+- **`ports` (externe)** : le port est publié sur la machine hôte, accessible depuis `localhost`
+- **`expose` (interne)** : le port est déclaré uniquement sur le réseau Docker interne (`app-network`), inaccessible depuis l'extérieur
+- **Aucun** : le service ne déclare aucun port (workers, consommateurs de messages)
 
 **Services d'infrastructure :**
 | Service | Image | Port | Rôle |
 |---|---|---|---|
-| postgres | postgres:17 | 5432 | BDD relationnelle (2 databases) |
-| mongodb | mongo:8 | 27017 | BDD documents (Replica Set rs0) |
-| rabbitmq | rabbitmq:4-management | 5672 / 15672 | Broker de messages |
-| mongo-express | mongo-express | 8081 | Interface admin MongoDB |
-| adminer | adminer | 8082 | Interface admin PostgreSQL |
+| postgres | postgres:15-alpine | 5432 | BDD relationnelle (2 databases) |
+| mongodb | mongo:latest | 27017 | BDD documents (Replica Set rs0) |
+| mongo-init-replica | mongo:latest | - | Initialisation du Replica Set |
+| rabbitmq | rabbitmq:3-management | 5672 / 15672 | Broker de messages |
+| mongo-express | mongo-express | 8081 | Interface admin MongoDB (dev uniquement) |
+| adminer | adminer | 8082 | Interface admin PostgreSQL (dev uniquement) |
 
 Le worker est le seul service avec plusieurs replicas, ce qui permet de traiter plusieurs générations IA en parallèle.
+
+**Initialisation du Replica Set MongoDB :**
+
+Le service `mongo-init-replica` est un conteneur éphémère (configuré avec `restart: "no"`) qui s'exécute une seule fois au démarrage. Il attend que MongoDB soit prêt, puis exécute la commande `rs.initiate()` via `mongosh` pour initialiser le Replica Set `rs0`. Ce Replica Set est indispensable : sans lui, les MongoDB Change Streams (utilisés pour le SSE en temps réel) ne fonctionnent pas. C'est une contrainte technique de MongoDB — les Change Streams nécessitent un oplog, qui n'existe que dans un Replica Set ou un cluster shardé.
+
+De la même manière, un script d'initialisation PostgreSQL (`docker/postgres/init-databases.sh`) crée automatiquement les deux bases de données (`users_db` et `seo_facile_shops`) au premier démarrage du conteneur.
 
 ### 11.3 Variables d'environnement
 
@@ -1184,22 +1251,22 @@ Voici le récapitulatif complet des endpoints exposés par l'API Gateway :
 
 ### Shopify OAuth (Shop API - pas d'auth requise)
 
-| Méthode | Route                      | Description                                              |
-| ------- | -------------------------- | -------------------------------------------------------- |
-| GET     | `/shopify/auth/callback`   | Callback OAuth Shopify (vérifie HMAC, échange le code)   |
+| Méthode | Route                    | Description                                            |
+| ------- | ------------------------ | ------------------------------------------------------ |
+| GET     | `/shopify/auth/callback` | Callback OAuth Shopify (vérifie HMAC, échange le code) |
 
 ### Stores (Shop API - auth requise)
 
-| Méthode | Route                        | Description                          |
-| ------- | ---------------------------- | ------------------------------------ |
-| GET     | `/stores`                    | Liste des boutiques de l'utilisateur |
+| Méthode | Route                        | Description                              |
+| ------- | ---------------------------- | ---------------------------------------- |
+| GET     | `/stores`                    | Liste des boutiques de l'utilisateur     |
 | POST    | `/stores`                    | Ajouter une boutique (retourne oauthUrl) |
-| GET     | `/stores/:storeId`           | Détail d'une boutique                |
-| PUT     | `/stores/:storeId`           | Modifier une boutique                |
-| DELETE  | `/stores/:storeId`           | Supprimer une boutique               |
-| POST    | `/stores/:storeId/reconnect` | Relancer le flux OAuth (reconnexion) |
-| GET     | `/stores/:storeId/settings`  | Paramètres SEO du store              |
-| PUT     | `/stores/:storeId/settings`  | Modifier les paramètres SEO          |
+| GET     | `/stores/:storeId`           | Détail d'une boutique                    |
+| PUT     | `/stores/:storeId`           | Modifier une boutique                    |
+| DELETE  | `/stores/:storeId`           | Supprimer une boutique                   |
+| POST    | `/stores/:storeId/reconnect` | Relancer le flux OAuth (reconnexion)     |
+| GET     | `/stores/:storeId/settings`  | Paramètres SEO du store                  |
+| PUT     | `/stores/:storeId/settings`  | Modifier les paramètres SEO              |
 
 ### Produits (Shop API - auth requise)
 
@@ -1251,18 +1318,22 @@ Concrètement, ces principes se traduisent par deux packages partagés (`shared`
 
 Les 4 services backend (API Gateway, Users API, Generations API, Shop API) reposent sur des middlewares communs. Pour éviter toute duplication, ceux-ci sont centralisés dans un package workspace `@seo-facile-de-ouf/backend-shared` (`backend/shared/`) :
 
-| Module             | Rôle                                                            | Utilisé par                              |
-| ------------------ | --------------------------------------------------------------- | ---------------------------------------- |
-| `error.middleware`  | Middleware Express de gestion d'erreurs                         | Les 4 services                           |
-| `gateway-guard`     | Vérification du header `X-Gateway-Secret` + extraction userId   | Users API, Generations API, Shop API     |
-| `encryption`        | Chiffrement/déchiffrement AES-256-GCM                           | Shop API                                 |
-| `app-factory`       | Factory `createApp()` pour initialiser Express                  | Users API, Generations API, Shop API     |
-| `controller-utils`  | Helpers pour les controllers (`getParam`, `handleServiceError`) | Shop API                                 |
+| Module             | Rôle                                                            | Utilisé par                          |
+| ------------------ | --------------------------------------------------------------- | ------------------------------------ |
+| `error.middleware` | Middleware Express de gestion d'erreurs                         | Les 4 services                       |
+| `gateway-guard`    | Vérification du header `X-Gateway-Secret` + extraction userId   | Users API, Generations API, Shop API |
+| `encryption`       | Chiffrement/déchiffrement AES-256-GCM                           | Shop API                             |
+| `app-factory`      | Factory `createApp()` pour initialiser Express                  | Users API, Generations API, Shop API |
+| `controller-utils` | Helpers pour les controllers (`getParam`, `handleServiceError`) | Shop API                             |
 
 Chaque service importe depuis un seul point d'entrée :
 
 ```typescript
-import { createApp, gatewayGuard, requireAuth } from "@seo-facile-de-ouf/backend-shared";
+import {
+  createApp,
+  gatewayGuard,
+  requireAuth,
+} from "@seo-facile-de-ouf/backend-shared";
 ```
 
 ### 13.3 Factory d'application Express
@@ -1329,7 +1400,7 @@ function useEntityList<T>(options: {
   extractItems: (res: any) => T[];
   extractTotal: (res: any) => number;
   buildParams?: (page: number, pageSize: number) => Record<string, string>;
-})
+});
 // Retourne : items, loading, syncing, error, page, pageSize, total, fetchItems, syncItems, setPage, setPageSize
 ```
 
@@ -1340,7 +1411,7 @@ function useEntityCRUD<T, U>(options: {
   endpoint: string;
   entityName: string;
   extractEntity: (res: any) => T;
-})
+});
 // Retourne : entity, loading, saving, publishing, syncing, error, fetchEntity, updateEntity, publishEntity, syncEntity
 ```
 
@@ -1349,15 +1420,25 @@ Les hooks spécifiques sont de simples wrappers qui paramètrent le hook génér
 ```typescript
 // use-shopify-products.ts
 export function useShopifyProducts(storeId: string, filters?: ProductFilters) {
-  const buildParams = useCallback((page: number, pageSize: number) => {
-    const params: Record<string, string> = { page: String(page), pageSize: String(pageSize) };
-    if (filters?.status) params.status = filters.status;
-    if (filters?.collectionId) params.collectionId = filters.collectionId;
-    if (filters?.search) params.search = filters.search;
-    return params;
-  }, [filters]);
+  const buildParams = useCallback(
+    (page: number, pageSize: number) => {
+      const params: Record<string, string> = {
+        page: String(page),
+        pageSize: String(pageSize),
+      };
+      if (filters?.status) params.status = filters.status;
+      if (filters?.collectionId) params.collectionId = filters.collectionId;
+      if (filters?.search) params.search = filters.search;
+      return params;
+    },
+    [filters],
+  );
 
-  const { items: products, syncItems: syncProducts, ...rest } = useEntityList<ShopifyProduct>({
+  const {
+    items: products,
+    syncItems: syncProducts,
+    ...rest
+  } = useEntityList<ShopifyProduct>({
     endpoint: `/shops/${storeId}/products`,
     entityName: "products",
     extractItems: (res) => res.products,
@@ -1413,13 +1494,15 @@ function getGenerators(entityType: string, context: any) {
   if (entityType === "product") {
     return {
       entityName: context.productContext?.title || "produit",
-      generateDescription: () => openaiService.generateProductDescription(context),
+      generateDescription: () =>
+        openaiService.generateProductDescription(context),
       generateMeta: () => openaiService.generateProductMeta(context),
     };
   }
   return {
     entityName: context.collectionContext?.title || "collection",
-    generateDescription: () => openaiService.generateCollectionDescription(context),
+    generateDescription: () =>
+      openaiService.generateCollectionDescription(context),
     generateMeta: () => openaiService.generateCollectionMeta(context),
   };
 }
@@ -1429,13 +1512,19 @@ Une seule fonction `generateContent()` utilise ces générateurs dans un unique 
 
 ```typescript
 async function generateContent(job: any): Promise<GenerationContent> {
-  const { generateDescription, generateMeta } = getGenerators(job.entityType, job);
+  const { generateDescription, generateMeta } = getGenerators(
+    job.entityType,
+    job,
+  );
 
   switch (job.fieldType) {
     case "description":
       return { description: await generateDescription() };
     case "full_description":
-      const [desc, meta] = await Promise.all([generateDescription(), generateMeta()]);
+      const [desc, meta] = await Promise.all([
+        generateDescription(),
+        generateMeta(),
+      ]);
       return { description: desc, ...meta };
     // ...
   }
@@ -1472,16 +1561,16 @@ import { formatDate, formatPrice } from "@/lib/format";
 
 ### 13.9 Bilan
 
-| Zone                | Mécanisme DRY/KISS                          |
-| ------------------- | ------------------------------------------- |
-| Middlewares backend  | Package partagé `@seo-facile-de-ouf/backend-shared` |
-| Initialisation Express | Factory `createApp()` paramétrable        |
-| Controllers          | Utilitaires `getParam`, `getRequiredUserId`, `handleServiceError` |
-| Hooks liste          | Hook générique `useEntityList<T>`           |
-| Hooks CRUD           | Hook générique `useEntityCRUD<T, U>`        |
-| Validation Zod       | Base commune `baseSeoFields` + extensions   |
-| Worker consumer      | Strategy pattern `getGenerators()` + dispatch unifié |
-| Formatage            | Module partagé `lib/format.ts`              |
+| Zone                   | Mécanisme DRY/KISS                                                |
+| ---------------------- | ----------------------------------------------------------------- |
+| Middlewares backend    | Package partagé `@seo-facile-de-ouf/backend-shared`               |
+| Initialisation Express | Factory `createApp()` paramétrable                                |
+| Controllers            | Utilitaires `getParam`, `getRequiredUserId`, `handleServiceError` |
+| Hooks liste            | Hook générique `useEntityList<T>`                                 |
+| Hooks CRUD             | Hook générique `useEntityCRUD<T, U>`                              |
+| Validation Zod         | Base commune `baseSeoFields` + extensions                         |
+| Worker consumer        | Strategy pattern `getGenerators()` + dispatch unifié              |
+| Formatage              | Module partagé `lib/format.ts`                                    |
 
 Chaque abstraction a été introduite uniquement là où le partage de logique est avéré (au moins 2 occurrences identiques), jamais de manière préventive. Les composants qui se ressemblent visuellement mais ont des responsabilités distinctes (formulaires produit vs collection, API Gateway vs microservices) restent séparés.
 

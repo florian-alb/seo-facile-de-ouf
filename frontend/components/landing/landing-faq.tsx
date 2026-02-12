@@ -12,17 +12,17 @@ const faqs = [
   {
     question: "Quels modèles d'IA sont utilisés ?",
     answer:
-      "SEO Facile utilise GPT-4o d'OpenAI et Claude d'Anthropic pour générer du contenu SEO de qualité professionnelle. L'architecture multi-modèle permet de choisir le meilleur modèle selon le type de contenu : les descriptions longues, les meta-titres courts, etc.",
+      "EasySEO utilise GPT-4o d'OpenAI et Claude d'Anthropic pour générer du contenu SEO de qualité professionnelle. L'architecture multi-modèle permet de choisir le meilleur modèle selon le type de contenu : les descriptions longues, les meta-titres courts, etc.",
   },
   {
-    question: "Faut-il des connaissances techniques pour utiliser SEO Facile ?",
+    question: "Faut-il des connaissances techniques pour utiliser EasySEO ?",
     answer:
       "Non, aucune connaissance technique n'est requise. Vous connectez votre boutique Shopify avec vos identifiants API (Client ID et Client Secret disponibles dans votre admin Shopify), configurez vos préférences SEO, et l'IA fait le reste.",
   },
   {
     question: "Comment fonctionne la synchronisation avec Shopify ?",
     answer:
-      "SEO Facile se connecte à votre boutique via l'API GraphQL de Shopify. Vos produits et collections sont synchronisés en un clic, avec toutes leurs informations (titre, description, prix, images, tags). Vous pouvez ensuite publier les modifications directement depuis SEO Facile.",
+      "EasySEO se connecte à votre boutique via l'API GraphQL de Shopify. Vos produits et collections sont synchronisés en un clic, avec toutes leurs informations (titre, description, prix, images, tags). Vous pouvez ensuite publier les modifications directement depuis EasySEO.",
   },
   {
     question: "Puis-je personnaliser le style du contenu généré ?",
@@ -54,7 +54,7 @@ export default function LandingFaq() {
             Questions fréquentes
           </h2>
           <p className="mt-4 text-muted-foreground">
-            Tout ce que vous devez savoir sur SEO Facile.
+            Tout ce que vous devez savoir sur EasySEO.
           </p>
         </div>
 

@@ -3,7 +3,7 @@
 import type { UserPublic } from "@seo-facile-de-ouf/shared/src/user";
 import { useTheme } from "next-themes";
 
-import { Command, Moon, Sun } from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 
 import { NavUser } from "@/components/sidebar/nav-user";
 import { StoresSection } from "@/components/sidebar/stores-section";
@@ -16,6 +16,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { SeoEasyLogo } from "@/components/icons/logo-easy-seo";
 
 export function AppSidebar({
   user,
@@ -33,14 +34,12 @@ export function AppSidebar({
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <a href="/dashboard">
-                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                  <Command className="size-4" />
-                </div>
+                <SeoEasyLogo className="size-8! rounded-lg aspect-square" />
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">
                     EasySEO
                   </span>
-                  <span className="truncate text-xs">Enterprise</span>
+                  <span className="truncate text-xs">Le EasySEO</span>
                 </div>
               </a>
             </SidebarMenuButton>

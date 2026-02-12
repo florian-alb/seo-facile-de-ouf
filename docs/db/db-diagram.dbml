@@ -1,0 +1,235 @@
+// ============================================
+// PostgreSQL: users_db (Users API - port 5001)
+// ============================================
+
+Table user {
+  id uuid [pk, default: `uuid()`]
+  name varchar [not null]
+  email varchar [unique, not null]
+  generationIds text[] [note: 'IDs des generations liees']
+  createdAt timestamp [default: `now()`]
+  emailVerified boolean [default: false]
+  image varchar
+  updatedAt timestamp
+
+  Note: 'Comptes utilisateurs EasySeo'
+}
+
+Table session {
+  id varchar [pk]
+  expiresAt timestamp [not null]
+  token varchar [unique, not null]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp
+  ipAddress varchar
+  userAgent varchar
+  userId uuid [not null, ref: > user.id]
+
+  indexes {
+    userId
+  }
+
+  Note: 'Sessions actives (Better Auth)'
+}
+
+Table account {
+  id varchar [pk]
+  accountId varchar [not null]
+  providerId varchar [not null, note: 'github, google, roblox, credential']
+  userId uuid [not null, ref: > user.id]
+  accessToken varchar
+  refreshToken varchar
+  idToken varchar
+  accessTokenExpiresAt timestamp
+  refreshTokenExpiresAt timestamp
+  scope varchar
+  password varchar [note: 'Hashed, uniquement pour credential']
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp
+
+  indexes {
+    userId
+  }
+
+  Note: 'Comptes OAuth (GitHub, Google, Roblox) et credentials'
+}
+
+Table verification {
+  id varchar [pk]
+  identifier varchar [not null]
+  value varchar [not null]
+  expiresAt timestamp [not null]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp
+
+  indexes {
+    identifier
+  }
+
+  Note: 'Tokens de verification email'
+}
+
+Table jwks {
+  id varchar [pk]
+  publicKey text [not null]
+  privateKey text [not null]
+  createdAt timestamp [not null]
+  expiresAt timestamp
+
+  Note: 'Cles JWT (Better Auth)'
+}
+
+// =====================================================
+// PostgreSQL: seo_facile_shops (Shop API - port 5003)
+// =====================================================
+
+Table store {
+  id uuid [pk, default: `uuid()`]
+  userId uuid [not null, note: 'Ref vers user dans users_db (cross-service)']
+  name varchar [not null]
+  url varchar [not null]
+  shopifyDomain varchar [unique, not null, note: 'xxx.myshopify.com']
+  language varchar [default: 'fr']
+  status varchar [default: 'pending', note: 'pending | connected | disconnected']
+  accessToken text [note: 'Token offline Shopify chiffre AES-256-GCM']
+  nonce varchar [note: 'Nonce OAuth temporaire (CSRF)']
+  lastSyncedAt timestamp
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp
+
+  indexes {
+    userId
+  }
+
+  Note: 'Boutiques Shopify connectees via OAuth'
+}
+
+Table store_settings {
+  id uuid [pk, default: `uuid()`]
+  storeId uuid [unique, not null, ref: - store.id]
+  nicheKeyword varchar [default: '', note: 'Ex: puzzle en bois']
+  nicheDescription text [default: '']
+  language varchar [default: 'fr', note: 'fr, en, es, de, it']
+  collectionWordCount int [default: 800, note: '600-1200']
+  productWordCount int [default: 400, note: '200-600']
+  customerPersona text [default: '', note: 'Ex: Femme active 25-40 ans']
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp
+
+  indexes {
+    storeId
+  }
+
+  Note: 'Parametres SEO par boutique (contexte IA)'
+}
+
+Table shopify_collection {
+  id cuid [pk]
+  shopifyGid varchar [not null, note: 'gid://shopify/Collection/123']
+  storeId uuid [not null, ref: > store.id]
+  title varchar [not null]
+  handle varchar [not null]
+  descriptionHtml text
+  imageUrl varchar
+  imageAlt varchar
+  seoDescription text
+  seoTitle varchar
+  productsCount int [default: 0]
+  shopifyUpdatedAt timestamp [not null]
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp
+
+  indexes {
+    (shopifyGid, storeId) [unique]
+    storeId
+  }
+
+  Note: 'Collections synchronisees depuis Shopify'
+}
+
+Table shopify_product {
+  id cuid [pk]
+  shopifyGid varchar [not null, note: 'gid://shopify/Product/123']
+  storeId uuid [not null, ref: > store.id]
+  title varchar [not null]
+  handle varchar [not null]
+  descriptionHtml text
+  seoDescription text
+  seoTitle varchar
+  status varchar [not null, note: 'ACTIVE | DRAFT | ARCHIVED']
+  vendor varchar
+  productType varchar
+  tags text[] [note: 'Array de tags']
+  price decimal(10,2) [not null]
+  compareAtPrice decimal(10,2)
+  sku varchar
+  imageUrl varchar
+  imageAlt varchar
+  collectionIds text[] [note: 'Array de GIDs collection']
+  shopifyCreatedAt timestamp [not null]
+  shopifyUpdatedAt timestamp [not null]
+  publishedAt timestamp
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp
+
+  indexes {
+    (shopifyGid, storeId) [unique]
+    storeId
+    (storeId, status)
+  }
+
+  Note: 'Produits synchronises depuis Shopify'
+}
+
+// ================================================================
+// MongoDB: generations-db (Generations API + Worker - port 5002)
+// ================================================================
+
+Table generation {
+  _id ObjectId [pk]
+  entityType varchar [not null, note: 'product | collection']
+  productId varchar [note: 'Si entityType = product']
+  productName varchar
+  collectionId varchar [note: 'Si entityType = collection']
+  collectionName varchar
+  keywords text[] [note: 'Mots-cles fournis par utilisateur']
+  fieldType varchar [not null, note: 'description | seoTitle | seoDescription | full_description | meta_only | slug_only']
+  status varchar [not null, default: 'pending', note: 'pending | processing | completed | failed']
+  content_title varchar
+  content_description text
+  content_metaTitle varchar
+  content_metaDescription varchar
+  content_slug varchar
+  storeSettings_nicheKeyword varchar
+  storeSettings_nicheDescription text
+  storeSettings_language varchar
+  storeSettings_productWordCount int
+  storeSettings_collectionWordCount int
+  storeSettings_customerPersona text
+  productContext_title varchar
+  productContext_tags text[]
+  productContext_vendor varchar
+  productContext_productType varchar
+  productContext_price decimal
+  productContext_currentDescription text
+  collectionContext_title varchar
+  collectionContext_handle varchar
+  collectionContext_productsCount int
+  collectionContext_currentDescription text
+  error varchar
+  retryCount int [default: 0, note: 'Max 3 tentatives']
+  userId varchar [not null, note: 'Ref vers user (cross-service)']
+  shopId varchar [not null, note: 'Ref vers store (cross-service)']
+  createdAt timestamp [default: `now()`]
+  updatedAt timestamp
+  completedAt timestamp
+
+  indexes {
+    (status, createdAt)
+    (userId, shopId)
+    (productId, userId, createdAt)
+    (collectionId, userId, createdAt)
+  }
+
+  Note: 'Jobs de generation IA (MongoDB document avec sous-objets content, storeSettings, productContext, collectionContext)'
+}

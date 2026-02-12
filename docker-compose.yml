@@ -59,8 +59,8 @@ services:
       context: .
       dockerfile: backend/users-api/Dockerfile
     container_name: users-api
-    ports:
-      - "${USERS_API_PORT:-5001}:5001"
+    expose:
+      - "5001"
     volumes:
       - ./backend/users-api:/src/backend/users-api
       - ./backend/shared:/src/backend/shared
@@ -85,8 +85,8 @@ services:
       context: .
       dockerfile: backend/shop-api/Dockerfile
     container_name: shop-api
-    ports:
-      - "${SHOP_API_PORT:-5003}:5003"
+    expose:
+      - "5003"
     volumes:
       - ./backend/shop-api:/src/backend/shop-api
       - ./backend/shared:/src/backend/shared
@@ -111,8 +111,8 @@ services:
       context: .
       dockerfile: backend/generations-api/Dockerfile
     container_name: generations-api
-    ports:
-      - "${GENERATIONS_API_PORT:-5002}:5002"
+    expose:
+      - "5002"
     volumes:
       - ./backend/generations-api:/src/backend/generations-api
       - ./backend/shared:/src/backend/shared

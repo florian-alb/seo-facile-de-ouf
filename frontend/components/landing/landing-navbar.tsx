@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useTheme } from "next-themes";
-import { Leaf, Menu, Moon, Sun } from "lucide-react";
+import { Menu, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -12,6 +12,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { SeoEasyLogo } from "@/components/icons/logo-easy-seo";
 
 const navLinks = [
   { href: "#fonctionnalites", label: "Fonctionnalités" },
@@ -28,8 +29,8 @@ export default function LandingNavbar() {
       <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 font-bold text-lg">
-          <Leaf className="size-5 text-primary" />
-          SEO Facile
+          <SeoEasyLogo className="size-8! rounded-lg aspect-square" />
+          EasySEO
         </Link>
 
         {/* Desktop nav */}
@@ -89,8 +90,8 @@ export default function LandingNavbar() {
             <SheetContent side="right" className="w-72">
               <SheetHeader>
                 <SheetTitle className="flex items-center gap-2">
-                  <Leaf className="size-5 text-primary" />
-                  SEO Facile
+                  <SeoEasyLogo className="size-8! rounded-lg aspect-square" />
+                  EasySEO
                 </SheetTitle>
               </SheetHeader>
               <div className="flex flex-col gap-4 px-4">
